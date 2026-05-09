@@ -1,0 +1,9 @@
+[
+    { "id": "first_word", "title": "初入词海", "desc": "添加第一个单词", "icon": "🎉" },
+    { "id": "ten_words", "title": "十词起步", "desc": "累计添加10个单词", "icon": "📚" },
+    { "id": "fifty_words", "title": "词汇达人", "desc": "累计添加50个单词", "icon": "🏅" },
+    { "id": "perfect_rate_80", "title": "正确率80%", "desc": "单词平均正确率≥80%", "icon": "💯" },
+    { "id": "ten_quiz", "title": "勤学苦练", "desc": "完成10次听写", "icon": "✍️" },
+    { "id": "ebbinghaus_master", "title": "艾宾浩斯大师", "desc": "完成一个单词的全部复习周期", "icon": "🧠" },
+    { "id": "first_correct", "title": "旗开得胜", "desc": "第一次听写答对", "icon": "⭐" }
+]
