@@ -1,5 +1,5 @@
-import { AppState } from '../app.js';
-import { exportData, importData, manualSave } from './utils.js';
+// js/modules/profile.js
+import { exportData, importData, manualSave, escapeHtml } from './utils.js';
 
 let currentAvatarBase64 = null;
 
@@ -8,6 +8,7 @@ export function renderProfileTab(db) {
     const nick = localStorage.getItem('ariels_nickname') || '';
     const avatar = localStorage.getItem('ariels_avatar') || '';
     currentAvatarBase64 = avatar;
+
     main.innerHTML = `
         <div class="profile-container">
             <div class="avatar-section">
@@ -40,37 +41,39 @@ export function renderProfileTab(db) {
         </div>
     `;
 
-    function escapeHtml(str) { return String(str).replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
-
-    // 绑定事件
-    document.getElementById('upload-avatar-btn').onclick = () => {
-        const input = document.getElementById('avatar-upload');
-        input.click();
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    const img = document.getElementById('avatar-img');
-                    img.src = ev.target.result;
-                    currentAvatarBase64 = ev.target.result;
-                    alert("头像已上传，记得点击保存");
-                };
-                reader.readAsDataURL(file);
-            } else {
-                alert("请选择图片文件");
-            }
-            input.value = '';
-        };
+    // 绑定头像上传
+    const uploadBtn = document.getElementById('upload-avatar-btn');
+    const avatarInput = document.getElementById('avatar-upload');
+    uploadBtn.onclick = () => avatarInput.click();
+    avatarInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = document.getElementById('avatar-img');
+                img.src = ev.target.result;
+                currentAvatarBase64 = ev.target.result;
+                alert("头像已上传，记得点击保存");
+            };
+            reader.readAsDataURL(file);
+        } else {
+            alert("请选择图片文件");
+        }
+        avatarInput.value = '';
     };
+
+    // 保存个人信息
     document.getElementById('save-profile-btn').onclick = () => {
-        const nick = document.getElementById('nickname-input').value.trim();
-        if (nick) localStorage.setItem('ariels_nickname', nick);
+        const nickInput = document.getElementById('nickname-input');
+        const newNick = nickInput.value.trim();
+        if (newNick) localStorage.setItem('ariels_nickname', newNick);
         else localStorage.removeItem('ariels_nickname');
         if (currentAvatarBase64) localStorage.setItem('ariels_avatar', currentAvatarBase64);
         else localStorage.removeItem('ariels_avatar');
         alert("个人信息已保存");
     };
+
+    // 导出/导入/手动保存
     document.getElementById('profile-export-btn').onclick = () => exportData(db);
     document.getElementById('profile-import-btn').onclick = () => document.getElementById('import-file').click();
     document.getElementById('profile-manual-save-btn').onclick = () => manualSave(db);

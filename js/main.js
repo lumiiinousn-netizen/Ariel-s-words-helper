@@ -1,3 +1,4 @@
+// ========== 入口模块 main.js ==========
 import { AppState, setDB } from './app.js';
 import { loadInviteData, verifyInviteCode, isInviteVerified, generateInviteCodes, isAdminPasswordSet, verifyAdminPassword, resetInviteStorage, getInviteList, deleteInviteCode } from './modules/invite.js';
 import { renderUnderstanding, renderSpelling, showAddUnderstandingForm, hideAddUnderstandingForm, autoFillUnderstanding, addUnderstandingWord, showAddSpellingForm, hideAddSpellingForm, autoFillSpelling, addSpellingWord } from './modules/wordbank.js';
@@ -5,10 +6,10 @@ import { updateSpellList, getWordGroup, getWordAccuracy, isDueForReview } from '
 import { startNewQuiz, setQuizNavCallbacks, updateQuizNav } from './modules/dictation.js';
 import { renderProfileTab } from './modules/profile.js';
 import { loadNotice } from './modules/notice.js';
-import { renderAchievementsTab, checkAndUnlockAchievements } from './modules/achievements.js';
+import { renderAchievementsTab, checkAndUnlockAchievements, initAchievements } from './modules/achievements.js';
 import { speakEnglishWord, exportData, importData, manualSave, formatReviewDate } from './modules/utils.js';
 
-// 数据库类
+// 数据库类定义
 class Database {
     constructor() {
         this.wordBank = [];
@@ -33,7 +34,7 @@ class Database {
     }
 }
 
-// 渲染整个UI（静态结构）
+// 渲染整个应用的 DOM 结构
 function renderApp() {
     const root = document.getElementById('app-root');
     root.innerHTML = `
@@ -46,7 +47,6 @@ function renderApp() {
                 <input type="text" id="invite-code-input" placeholder="例如: WELCOME-2025" autocomplete="off">
                 <button id="submit-invite-btn" class="btn-primary">验证</button>
                 <div id="invite-error" class="error-msg" style="display:none;">邀请码无效或已使用</div>
-                <button id="reset-storage-btn" style="margin-top:1rem; background:#dc2626; color:white; border:none; padding:0.5rem 1rem; border-radius:2rem;">⚠️ 重置存储</button>
             </div>
         </div>
         <div id="app-container" class="app-container" style="display:none;">
@@ -82,7 +82,7 @@ function renderApp() {
     `;
 }
 
-// 管理面板刷新（调用后端API）
+// 刷新管理员面板（从后端获取数据并渲染）
 async function refreshAdminPanel(adminKey) {
     const container = document.getElementById('admin-codes-list');
     if (!container) return;
@@ -102,26 +102,24 @@ async function refreshAdminPanel(adminKey) {
             <div style="margin-top:8px;"><strong>❌ 已使用 (${used.length}):</strong></div>
             ${used.map(item => `<div style="color:#94a3b8;">${item.code}</div>`).join('')}
         `;
-
         // 绑定复制链接按钮
         document.querySelectorAll('.copy-code-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.onclick = () => {
                 const code = btn.dataset.code;
                 const link = `${location.origin}${location.pathname}?code=${code}`;
                 navigator.clipboard.writeText(link);
-                alert("链接已复制，可发送给朋友");
-            });
+                alert("链接已复制");
+            };
         });
-
         // 绑定删除按钮
         document.querySelectorAll('.delete-code-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
+            btn.onclick = async () => {
                 const code = btn.dataset.code;
-                if (confirm(`确定要删除邀请码 ${code} 吗？\n该码将立即失效。`)) {
+                if (confirm(`删除邀请码 ${code}？`)) {
                     await deleteInviteCode(code, adminKey);
                     refreshAdminPanel(adminKey);
                 }
-            });
+            };
         });
     } catch (err) {
         console.error(err);
@@ -129,7 +127,7 @@ async function refreshAdminPanel(adminKey) {
     }
 }
 
-// 事件绑定
+// 绑定全局事件
 function bindEvents(db) {
     // 标签切换
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -139,7 +137,7 @@ function bindEvents(db) {
         });
     });
 
-    // 管理员面板：连续点击标题5次
+    // 管理员面板（连续点击标题5次）
     let clickCount = 0, clickTimer = null;
     const title = document.getElementById('clickable-title');
     title.addEventListener('click', () => {
@@ -153,9 +151,7 @@ function bindEvents(db) {
                 if (pwd && verifyAdminPassword(pwd)) {
                     document.getElementById('admin-panel').classList.add('show');
                     refreshAdminPanel(pwd);
-                } else {
-                    alert("密码错误");
-                }
+                } else alert("密码错误");
             } else {
                 const newPwd = prompt("首次使用，请设置管理员密码：");
                 if (newPwd && newPwd.trim()) {
@@ -163,46 +159,29 @@ function bindEvents(db) {
                     alert("管理员密码已设置");
                     document.getElementById('admin-panel').classList.add('show');
                     refreshAdminPanel(newPwd);
-                } else {
-                    alert("必须设置密码");
-                }
+                } else alert("必须设置密码");
             }
         }
     });
 
-    // 管理员面板内部按钮
-    const adminKey = localStorage.getItem('admin_password_hash'); // 实际是哈希，不能直接用。应该用用户输入的密码。
-    // 但在生成/删除操作中，我们需要用户输入的密码（即上述验证成功后的pwd）。所以生成/删除操作应动态获取密码。
-    // 更好的做法：在每次生成/删除时重新询问密码。或者将密码存储为全局变量。
-    let currentAdminKey = null;
-
-    const getAdminKey = () => {
-        if (currentAdminKey) return currentAdminKey;
-        const key = prompt("请输入管理员密码：");
-        if (key && verifyAdminPassword(key)) {
-            currentAdminKey = key;
-            return key;
-        }
-        return null;
-    };
-
+    // 管理员面板按钮
     document.getElementById('gen1-code').onclick = async () => {
-        const key = getAdminKey();
-        if (!key) return;
+        const key = prompt("请输入管理员密码：");
+        if (!key || !verifyAdminPassword(key)) return;
         const codes = await generateInviteCodes(1, key);
         alert(`生成邀请码: ${codes[0]}\n链接: ${location.origin}${location.pathname}?code=${codes[0]}`);
-        if (currentAdminKey) refreshAdminPanel(currentAdminKey);
+        refreshAdminPanel(key);
     };
     document.getElementById('gen5-code').onclick = async () => {
-        const key = getAdminKey();
-        if (!key) return;
+        const key = prompt("请输入管理员密码：");
+        if (!key || !verifyAdminPassword(key)) return;
         const codes = await generateInviteCodes(5, key);
         alert(`生成邀请码:\n${codes.join('\n')}\n\n对应链接:\n${codes.map(c => `${location.origin}${location.pathname}?code=${c}`).join('\n')}`);
-        if (currentAdminKey) refreshAdminPanel(currentAdminKey);
+        refreshAdminPanel(key);
     };
     document.getElementById('refresh-codes').onclick = async () => {
-        const key = getAdminKey();
-        if (key && currentAdminKey) refreshAdminPanel(currentAdminKey);
+        const key = prompt("请输入管理员密码：");
+        if (key && verifyAdminPassword(key)) refreshAdminPanel(key);
     };
     document.getElementById('reset-storage').onclick = () => resetInviteStorage();
     document.getElementById('close-admin').onclick = () => document.getElementById('admin-panel').classList.remove('show');
@@ -212,39 +191,27 @@ function bindEvents(db) {
         document.getElementById('notice-bar').classList.add('hidden');
     });
 
-    // 导出/导入/手动保存
-    document.getElementById('profile-export-btn')?.addEventListener('click', () => exportData(db));
-    document.getElementById('profile-import-btn')?.addEventListener('click', () => document.getElementById('import-file').click());
-    document.getElementById('profile-manual-save-btn')?.addEventListener('click', () => manualSave(db));
+    // 导出/导入/手动保存（在个人设置页面渲染后需要重新绑定，但这里先占位）
+    // 实际绑定会在 profile 渲染时通过事件委托或具体按钮绑定，此处无需重复
+    // 导入文件 input change
     document.getElementById('import-file').addEventListener('change', (e) => {
         if (e.target.files.length) importData(e.target.files[0], db, () => location.reload());
         e.target.value = '';
     });
 
-    // 听写导航
+    // 听写导航回调
     if (typeof setQuizNavCallbacks === 'function') {
         setQuizNavCallbacks(
-            () => {
-                if (AppState.currentQuizIndex > 0) {
-                    AppState.currentQuizIndex--;
-                    startNewQuiz();
-                }
-            },
-            () => {
-                if (AppState.currentQuizIndex < AppState.spellWordList.length - 1) {
-                    AppState.currentQuizIndex++;
-                    startNewQuiz();
-                }
-            }
+            () => { if (AppState.currentQuizIndex > 0) { AppState.currentQuizIndex--; startNewQuiz(); } },
+            () => { if (AppState.currentQuizIndex < AppState.spellWordList.length - 1) { AppState.currentQuizIndex++; startNewQuiz(); } }
         );
     }
 }
 
+// 切换标签页
 function switchTab(tab, db) {
     AppState.currentTab = tab;
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tab);
-    });
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
     const main = document.getElementById('main-view');
     if (tab === 'understanding') {
         renderUnderstanding();
@@ -260,7 +227,7 @@ function switchTab(tab, db) {
     }
 }
 
-// 启动应用
+// 应用初始化
 async function init() {
     renderApp();
     const db = new Database();
@@ -277,19 +244,21 @@ async function init() {
         document.getElementById('app-container').style.display = 'flex';
         await loadNotice();
         bindEvents(db);
+        // 订阅状态变化
         AppState.subscribe(() => {
             updateSpellList();
             if (AppState.currentTab === 'quiz') startNewQuiz();
         });
         updateSpellList();
         switchTab('understanding', db);
+        // 初始化成就系统
+        await initAchievements();
         checkAndUnlockAchievements(db);
     } else {
-        // 绑定邀请码验证按钮
+        // 未登录，绑定邀请码验证按钮
         const submitBtn = document.getElementById('submit-invite-btn');
         const inputEl = document.getElementById('invite-code-input');
         const errorDiv = document.getElementById('invite-error');
-        const resetStorageBtn = document.getElementById('reset-storage-btn');
         submitBtn.onclick = async () => {
             const code = inputEl.value.trim();
             if (await verifyInviteCode(code)) {
@@ -301,10 +270,9 @@ async function init() {
                 setTimeout(() => errorDiv.style.display = 'none', 2000);
             }
         };
-        resetStorageBtn.onclick = () => resetInviteStorage();
         // 加载邀请码界面的公告
         try {
-            const res = await fetch(`notice.json?t=${Date.now()}`);
+            const res = await fetch(`/notice.json?t=${Date.now()}`);
             const data = await res.json();
             const inviteNotice = document.getElementById('invite-notice');
             if (inviteNotice && data.content) inviteNotice.innerHTML = data.content;

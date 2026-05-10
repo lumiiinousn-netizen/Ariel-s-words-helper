@@ -4,102 +4,582 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Ariel's Words Helper ❄️</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='90' fill='%233b82f6'%3E❄️%3C/text%3E%3C/svg%3E">
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,'Segoe UI',Roboto,sans-serif}
-        body{background:#f1f5f9;padding:0.75rem}
-        .app-container{max-width:800px;margin:0 auto;background:white;border-radius:2rem;box-shadow:0 20px 35px -12px rgba(0,0,0,0.1);overflow:hidden;min-height:90vh;display:flex;flex-direction:column}
-        .notice-bar{background:#fef3c7;border-left:6px solid #f59e0b;padding:0.75rem 1rem;margin:0.5rem 1rem 0;border-radius:1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;font-size:0.85rem;color:#92400e}
-        .notice-content{flex:1}
-        .notice-close{background:none;border:none;font-size:1rem;cursor:pointer;color:#92400e}
-        .hidden{display:none}
-        header{background:white;padding:1rem 1rem 0;border-bottom:1px solid #e2e8f0}
-        h1{font-size:1.5rem;font-weight:600;margin-bottom:0.75rem;background:linear-gradient(135deg,#0f172a,#3b82f6);background-clip:text;-webkit-background-clip:text;color:transparent;text-align:center;cursor:pointer}
-        .tab-bar{display:flex;gap:0.25rem;justify-content:space-around}
-        .tab-btn{background:none;border:none;font-size:1rem;font-weight:500;padding:0.75rem 0.2rem;cursor:pointer;color:#64748b;border-bottom:3px solid transparent;flex:1;text-align:center}
-        .tab-btn.active{color:#3b82f6;border-bottom-color:#3b82f6}
-        main{flex:1;padding:1rem}
-        .tab-content{display:none;animation:fade 0.25s}
-        .tab-content.active{display:block}
-        @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-        .section-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem}
-        .section-header h2{font-size:1.3rem}
-        .icon-btn{background:#f1f5f9;border:none;padding:0.5rem 1rem;border-radius:2rem;font-weight:500;cursor:pointer}
-        .icon-btn:hover{background:#e2e8f0}
-        .add-word-panel{background:#f8fafc;padding:0.8rem;border-radius:1.5rem;margin-bottom:1.5rem;border:1px solid #e2e8f0}
-        .form-row{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem;align-items:center}
-        .form-row input{flex:1;min-width:120px;padding:0.6rem 0.8rem;border-radius:2rem;border:1px solid #cbd5e1;background:white;font-size:0.9rem}
-        .mini-btn{background:#e2e8f0;font-size:0.75rem;padding:0.4rem 0.8rem}
-        .btn-primary,.btn-secondary{padding:0.5rem 1rem;border-radius:2rem;border:none;font-weight:500;cursor:pointer;font-size:0.85rem}
-        .btn-primary{background:#3b82f6;color:white}
-        .btn-secondary{background:#e2e8f0}
-        .word-list-container{display:flex;flex-direction:column;gap:0.8rem}
-        .word-card{background:#fff;border-radius:1.25rem;padding:0.8rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,0.05);border:1px solid #eef2ff;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem}
-        .word-info{flex:2;min-width:150px}
-        .word-english{font-size:1.2rem;font-weight:600;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap}
-        .word-chinese{color:#475569;margin-top:0.2rem;font-size:0.85rem}
-        .word-meta{display:flex;gap:0.5rem;margin-top:0.4rem;font-size:0.7rem;font-weight:500;flex-wrap:wrap}
-        .badge{background:#eef2ff;padding:0.2rem 0.5rem;border-radius:1rem;color:#1e40af}
-        .badge.wrong{background:#fee2e2;color:#b91c1c}
-        .badge.high{background:#dcfce7;color:#15803d}
-        .badge.medium{background:#fff3e3;color:#b45309}
-        .badge.low{background:#fee2e2;color:#b91c1c}
-        .badge.due{background:#fef3c7;color:#b45309;border-left:3px solid #f59e0b}
-        .word-actions{display:flex;gap:0.5rem;align-items:center}
-        .icon-small{background:none;border:none;font-size:1.3rem;cursor:pointer;padding:0.3rem;border-radius:50%;display:inline-flex;align-items:center}
-        .icon-small:hover{background:#f1f5f9}
-        .group-selector{display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;justify-content:center}
-        .group-btn{background:#f1f5f9;border:none;padding:0.4rem 0.8rem;border-radius:2rem;font-weight:500;cursor:pointer;font-size:0.8rem}
-        .group-btn.active{background:#3b82f6;color:white}
-        .quiz-settings{background:#f8fafc;border-radius:1.5rem;padding:0.8rem;margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:0.8rem;align-items:center;justify-content:space-between}
-        .quiz-settings label{display:flex;align-items:center;gap:0.3rem;font-size:0.8rem}
-        .quiz-nav{display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1rem}
-        .nav-btn{background:#f1f5f9;border:none;font-size:1.5rem;width:44px;height:44px;border-radius:50%;cursor:pointer}
-        .nav-btn:disabled{opacity:0.4;cursor:not-allowed}
-        .word-counter{font-size:0.9rem;font-weight:500;background:#eef2ff;padding:0.3rem 0.8rem;border-radius:2rem}
-        .quiz-card{background:linear-gradient(135deg,#eff6ff,#fff);border-radius:1.5rem;padding:1.5rem 1rem;text-align:center}
-        .quiz-word{font-size:2rem;font-weight:700;margin-bottom:0.2rem}
-        .quiz-hint{color:#475569;margin-bottom:1.5rem;font-size:0.85rem}
-        .quiz-input-area{display:flex;flex-direction:column;gap:0.8rem;align-items:center}
-        .quiz-input-area input{width:90%;max-width:320px;padding:0.7rem;border-radius:2.5rem;border:2px solid #cbd5e1;font-size:0.95rem;text-align:center}
-        button.play-btn{background:#0f172a;color:white;border:none;padding:0.5rem 1.5rem;border-radius:2.5rem;display:inline-flex;align-items:center;gap:0.4rem;font-weight:500;cursor:pointer}
-        .quiz-feedback{margin-top:1rem;font-weight:500;font-size:0.9rem}
-        .quiz-result-card{background:#f8fafc;border-radius:1.5rem;padding:1.2rem;margin-top:1rem;text-align:left;border-left:4px solid #3b82f6}
-        .quiz-result-card .stat-row{display:flex;justify-content:space-between;margin-bottom:0.5rem;font-size:0.85rem}
-        .quiz-result-card .mnemonic-area{margin-top:1rem;border-top:1px solid #e2e8f0;padding-top:0.8rem}
-        .quiz-result-card textarea{width:100%;padding:0.5rem;border-radius:1rem;border:1px solid #cbd5e1;font-size:0.8rem;margin-top:0.3rem;resize:vertical}
-        .empty-state{text-align:center;color:#64748b;padding:1.5rem;font-size:0.9rem}
-        .profile-container{display:flex;flex-direction:column;gap:1.5rem;padding:0.5rem}
-        .avatar-section{display:flex;flex-direction:column;align-items:center;gap:0.5rem}
-        #avatar-img{width:100px;height:100px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;background:#f1f5f9}
-        #avatar-upload{display:none}
-        .nickname-section{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0.5rem}
-        #nickname-input{padding:0.5rem;border-radius:2rem;border:1px solid #cbd5e1;width:200px;text-align:center}
-        .data-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:0.8rem;margin-top:0.5rem}
-        .info-note{background:#f8fafc;border-radius:1rem;padding:0.8rem;font-size:0.8rem;color:#475569;text-align:center}
-        .achievements-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-top:1rem}
-        .achievement-card{background:#fff;border-radius:1.5rem;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.05);border:1px solid #eef2ff;display:flex;align-items:center;gap:1rem}
-        .achievement-card.locked{opacity:0.6;filter:grayscale(0.2)}
-        .achievement-card .icon{font-size:2.5rem}
-        .achievement-card .info{flex:1}
-        .achievement-card .title{font-weight:600;margin-bottom:4px}
-        .achievement-card .desc{font-size:0.75rem;color:#64748b}
-        .achievement-card .progress{font-size:0.7rem;color:#3b82f6;margin-top:4px}
-        .achievement-toast{position:fixed;bottom:20px;right:20px;background:linear-gradient(135deg,#1e293b,#0f172a);color:#fbbf24;padding:12px 20px;border-radius:40px;box-shadow:0 8px 20px rgba(0,0,0,0.2);display:flex;align-items:center;gap:12px;z-index:1100;animation:slideIn 0.3s ease-out,fadeOut 0.3s ease-in 2.7s forwards;font-size:0.9rem;max-width:300px}
-        @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-        @keyframes fadeOut{to{opacity:0;visibility:hidden}}
-        .invite-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:1000}
-        .invite-card{background:white;border-radius:2rem;padding:2rem;max-width:340px;width:85%;text-align:center;box-shadow:0 20px 35px rgba(0,0,0,0.2)}
-        .invite-card h2{margin-bottom:0.5rem}
-        .invite-card p{margin-bottom:1.2rem;color:#475569}
-        .invite-card input{width:100%;padding:0.8rem;border-radius:2rem;border:1px solid #cbd5e1;margin-bottom:1rem;text-align:center;font-size:1rem}
-        .invite-card .error-msg{color:#dc2626;font-size:0.8rem;margin-top:0.5rem}
-        .invite-notice{background:#fef3c7;border-left:4px solid #f59e0b;padding:0.6rem 0.8rem;margin-bottom:0.8rem;border-radius:0.75rem;font-size:0.85rem;color:#92400e}
-        .admin-contact-tip{background:#e0f2fe;border-left:4px solid #0284c7;padding:0.6rem 0.8rem;margin-bottom:1rem;border-radius:0.75rem;font-size:0.85rem;color:#0369a1;text-align:center;font-weight:500}
-        .admin-panel{position:fixed;bottom:20px;right:20px;background:#1e293b;color:white;padding:1rem;border-radius:1rem;display:none;z-index:1001;max-width:360px;width:calc(100% - 40px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
-        .admin-panel.show{display:block}
-        .admin-panel button{background:#3b82f6;border:none;color:white;padding:0.3rem 0.6rem;border-radius:1rem;cursor:pointer;margin-right:0.5rem}
-        @media (max-width:550px){body{padding:0.5rem}.app-container{border-radius:1.2rem}h1{font-size:1.3rem}.tab-btn{font-size:0.85rem;padding:0.5rem 0}main{padding:0.8rem}.word-english{font-size:1rem}.quiz-word{font-size:1.6rem}.nav-btn{width:38px;height:38px;font-size:1.2rem}.notice-bar{font-size:0.75rem;padding:0.5rem 0.8rem}#avatar-img{width:80px;height:80px}.admin-panel{right:10px;bottom:10px;max-width:300px}.invite-card{padding:1.5rem}}
-        button,.icon-small,.nav-btn,.group-btn{-webkit-tap-highlight-color:transparent}
+        /* ========== 全局样式 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 0.75rem;
+            min-height: 100vh;
+        }
+        .app-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            min-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .notice-bar {
+            background: #fef3c7;
+            border-left: 6px solid #f59e0b;
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 1rem 0;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: #92400e;
+        }
+        .notice-content { flex: 1; }
+        .notice-close {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: #92400e;
+            padding: 0 0.2rem;
+            opacity: 0.7;
+        }
+        .hidden { display: none; }
+        header {
+            background: white;
+            padding: 1rem 1rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #0f172a, #3b82f6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-align: center;
+            cursor: pointer;
+        }
+        .tab-bar {
+            display: flex;
+            gap: 0.25rem;
+            justify-content: space-around;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0.75rem 0.2rem;
+            cursor: pointer;
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+            flex: 1;
+            text-align: center;
+        }
+        .tab-btn.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        main {
+            flex: 1;
+            padding: 1rem;
+        }
+        .tab-content {
+            display: none;
+            animation: fade 0.25s ease;
+        }
+        .tab-content.active { display: block; }
+        @keyframes fade {
+            from { opacity: 0; transform: translateY(5px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .section-header h2 { font-size: 1.3rem; }
+        .icon-btn {
+            background: #f1f5f9;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .icon-btn:hover { background: #e2e8f0; transform: translateY(-1px); }
+        .add-word-panel {
+            background: #f8fafc;
+            padding: 0.8rem;
+            border-radius: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            align-items: center;
+        }
+        .form-row input {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.6rem 0.8rem;
+            border-radius: 2rem;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-size: 0.9rem;
+        }
+        .mini-btn {
+            background: #e2e8f0;
+            font-size: 0.75rem;
+            padding: 0.4rem 0.8rem;
+        }
+        .btn-primary, .btn-secondary {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-secondary { background: #e2e8f0; }
+        .word-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        .word-card {
+            background: #fff;
+            border-radius: 1.25rem;
+            padding: 0.8rem 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #eef2ff;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .word-info { flex: 2; min-width: 150px; }
+        .word-english {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .word-chinese { color: #475569; margin-top: 0.2rem; font-size: 0.85rem; }
+        .word-meta {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.4rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: #eef2ff;
+            padding: 0.2rem 0.5rem;
+            border-radius: 1rem;
+            color: #1e40af;
+        }
+        .badge.wrong { background: #fee2e2; color: #b91c1c; }
+        .badge.high { background: #dcfce7; color: #15803d; }
+        .badge.medium { background: #fff3e3; color: #b45309; }
+        .badge.low { background: #fee2e2; color: #b91c1c; }
+        .badge.due { background: #fef3c7; color: #b45309; border-left: 3px solid #f59e0b; }
+        .word-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .icon-small {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0.3rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+        }
+        .icon-small:hover { background: #f1f5f9; }
+        .group-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            justify-content: center;
+        }
+        .group-btn {
+            background: #f1f5f9;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .group-btn.active { background: #3b82f6; color: white; }
+        .quiz-settings {
+            background: #f8fafc;
+            border-radius: 1.5rem;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .quiz-settings label {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+        }
+        .quiz-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .nav-btn {
+            background: #f1f5f9;
+            border: none;
+            font-size: 1.5rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .word-counter {
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: #eef2ff;
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+        }
+        .quiz-card {
+            background: linear-gradient(135deg, #eff6ff, #fff);
+            border-radius: 1.5rem;
+            padding: 1.5rem 1rem;
+            text-align: center;
+        }
+        .quiz-word {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+        .quiz-hint {
+            color: #475569;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+        }
+        .quiz-input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            align-items: center;
+        }
+        .quiz-input-area input {
+            width: 90%;
+            max-width: 320px;
+            padding: 0.7rem;
+            border-radius: 2.5rem;
+            border: 2px solid #cbd5e1;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+        button.play-btn {
+            background: #0f172a;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .quiz-feedback {
+            margin-top: 1rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .quiz-result-card {
+            background: #f8fafc;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            margin-top: 1rem;
+            text-align: left;
+            border-left: 4px solid #3b82f6;
+        }
+        .quiz-result-card .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+        .quiz-result-card .mnemonic-area {
+            margin-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 0.8rem;
+        }
+        .quiz-result-card textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 1rem;
+            border: 1px solid #cbd5e1;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            resize: vertical;
+        }
+        .empty-state {
+            text-align: center;
+            color: #64748b;
+            padding: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .profile-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 0.5rem;
+        }
+        .avatar-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        #avatar-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e2e8f0;
+            background: #f1f5f9;
+        }
+        #avatar-upload { display: none; }
+        .nickname-section {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        #nickname-input {
+            padding: 0.5rem;
+            border-radius: 2rem;
+            border: 1px solid #cbd5e1;
+            width: 200px;
+            text-align: center;
+        }
+        .data-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        .info-note {
+            background: #f8fafc;
+            border-radius: 1rem;
+            padding: 0.8rem;
+            font-size: 0.8rem;
+            color: #475569;
+            text-align: center;
+        }
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .achievement-card {
+            background: #fff;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #eef2ff;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .achievement-card.locked {
+            opacity: 0.6;
+            filter: grayscale(0.2);
+        }
+        .achievement-card .icon {
+            font-size: 2.5rem;
+        }
+        .achievement-card .info {
+            flex: 1;
+        }
+        .achievement-card .title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .achievement-card .desc {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .achievement-card .progress {
+            font-size: 0.7rem;
+            color: #3b82f6;
+            margin-top: 4px;
+        }
+        .achievement-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #fbbf24;
+            padding: 12px 20px;
+            border-radius: 40px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1100;
+            animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+            font-size: 0.9rem;
+            max-width: 300px;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; visibility: hidden; }
+        }
+        .invite-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .invite-card {
+            background: white;
+            border-radius: 2rem;
+            padding: 2rem;
+            max-width: 340px;
+            width: 85%;
+            text-align: center;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+        }
+        .invite-card h2 { margin-bottom: 0.5rem; }
+        .invite-card p { margin-bottom: 1.2rem; color: #475569; }
+        .invite-card input {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 2rem;
+            border: 1px solid #cbd5e1;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 1rem;
+        }
+        .invite-card .error-msg {
+            color: #dc2626;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        .invite-notice {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 0.6rem 0.8rem;
+            margin-bottom: 0.8rem;
+            border-radius: 0.75rem;
+            font-size: 0.85rem;
+            color: #92400e;
+            text-align: left;
+        }
+        .admin-contact-tip {
+            background: #e0f2fe;
+            border-left: 4px solid #0284c7;
+            padding: 0.6rem 0.8rem;
+            margin-bottom: 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.85rem;
+            color: #0369a1;
+            text-align: center;
+            font-weight: 500;
+        }
+        .admin-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            color: white;
+            padding: 1rem;
+            border-radius: 1rem;
+            display: none;
+            z-index: 1001;
+            max-width: 360px;
+            width: calc(100% - 40px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .admin-panel.show { display: block; }
+        .admin-panel button {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 1rem;
+            cursor: pointer;
+            margin-right: 0.5rem;
+        }
+        @media (max-width: 550px) {
+            body { padding: 0.5rem; }
+            .app-container { border-radius: 1.2rem; }
+            h1 { font-size: 1.3rem; }
+            .tab-btn { font-size: 0.85rem; padding: 0.5rem 0; }
+            main { padding: 0.8rem; }
+            .word-english { font-size: 1rem; }
+            .quiz-word { font-size: 1.6rem; }
+            .nav-btn { width: 38px; height: 38px; font-size: 1.2rem; }
+            .notice-bar { font-size: 0.75rem; padding: 0.5rem 0.8rem; }
+            #avatar-img { width: 80px; height: 80px; }
+            .admin-panel { right: 10px; bottom: 10px; max-width: 300px; }
+            .invite-card { padding: 1.5rem; }
+        }
+        button, .icon-small, .nav-btn, .group-btn {
+            -webkit-tap-highlight-color: transparent;
+        }
     </style>
 </head>
 <body>
@@ -112,7 +592,7 @@
         <input type="text" id="invite-code-input" placeholder="例如: WELCOME-2025" autocomplete="off">
         <button id="submit-invite-btn" class="btn-primary">验证</button>
         <div id="invite-error" class="error-msg" style="display:none;">邀请码无效或已使用</div>
-        <button id="reset-storage-btn" style="margin-top:1rem; background:#dc2626; color:white; border:none; padding:0.5rem 1rem; border-radius:2rem;">⚠️ 重置存储</button>
+        <button id="reset-storage-btn" style="display:none;"></button>
     </div>
 </div>
 <div class="app-container" id="app-container" style="display:none;">
@@ -143,141 +623,780 @@
         <button id="close-admin">关闭</button>
     </div>
 </div>
-<audio id="tts-audio" style="display:none;"></audio>
+<audio id="tts-audio"></audio>
 <input type="file" id="import-file" style="display:none" accept=".json">
 <script>
-    // ========== 邀请码系统（纯前端+本地存储） ==========
-    let validInviteCodes = [];
-    let usedInviteCodes = [];
-    let adminPasswordHash = null;
-    let isVerified = false;
+    // ========== 后端 API 基础地址 ==========
+    const API_BASE = '/api';
+
+    // ========== 工具函数 ==========
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+    }
+
+    function getTodayStr() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function formatReviewDate(timestamp) {
+        if (!timestamp) return '未安排';
+        const date = new Date(timestamp);
+        return `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}`;
+    }
+
+    async function speakEnglishWord(word, accent = 'en-GB') {
+        try {
+            const voice = accent === 'en-GB' ? 'en-GB-RyanNeural' : 'en-US-JennyNeural';
+            const ssml = `<speak><voice name="${voice}">${word}</voice></speak>`;
+            const res = await fetch(`https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/ssml+xml', 'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3' },
+                body: ssml
+            });
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audio.play();
+                audio.onended = () => URL.revokeObjectURL(url);
+                return;
+            }
+            throw new Error();
+        } catch (e) {
+            const utterance = new SpeechSynthesisUtterance(word);
+            utterance.lang = accent === 'en-GB' ? 'en-GB' : 'en-US';
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    async function fetchTranslation(word) {
+        if (!word) return null;
+        const apis = [
+            async () => {
+                const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|zh`, { signal: AbortSignal.timeout(5000) });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                if (data?.responseData?.translatedText) {
+                    let t = data.responseData.translatedText.replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+                    if (t.toLowerCase() !== word.toLowerCase()) return t;
+                }
+                throw new Error();
+            },
+            async () => {
+                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh&dt=t&q=${encodeURIComponent(word)}`, { signal: AbortSignal.timeout(5000) });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                if (data?.[0]?.[0]?.[0]) return data[0][0][0];
+                throw new Error();
+            }
+        ];
+        for (const api of apis) {
+            try { const result = await api(); if (result) return result; } catch { continue; }
+        }
+        return null;
+    }
+
+    function detectPartOfSpeech(word) {
+        const patterns = [
+            { regex: /tion$|sion$/, pos: "n." }, { regex: /ing$/, pos: "v." }, { regex: /ly$/, pos: "adv." },
+            { regex: /ful$|ous$|ive$|al$|able$/, pos: "adj." }, { regex: /ize$|ise$/, pos: "v." },
+            { regex: /ment$/, pos: "n." }, { regex: /ness$/, pos: "n." }, { regex: /ity$/, pos: "n." }
+        ];
+        for (let p of patterns) if (p.regex.test(word)) return p.pos;
+        return "";
+    }
+
+    function isValidSentence(sentence) {
+        if (!sentence || typeof sentence !== 'string') return false;
+        const trimmed = sentence.trim();
+        if (trimmed.length < 10) return false;
+        const lower = trimmed.toLowerCase();
+        const forbiddenStart = ["hey", "hi", "hello", "oh", "wow", "yeah", "yes", "no", "what's up", "howdy", "greetings", "look", "listen", "well"];
+        for (let word of forbiddenStart) if (lower.startsWith(word)) return false;
+        if (/hey\W*beautiful/gi.test(trimmed)) return false;
+        const foodBlacklist = ["pizza", "burger", "sandwich", "spaghetti", "curry", "sushi", "taco", "burrito", "noodle", "rice", "chicken", "beef", "pork", "cake", "cookie", "ice cream", "chocolate", "apple pie", "steak"];
+        for (let food of foodBlacklist) if (lower.includes(food)) return false;
+        const verbIndicators = /\b(is|am|are|was|were|be|been|being|have|has|had|having|do|does|did|doing|go|goes|went|gone|make|makes|made|take|takes|took|taken|see|sees|saw|seen|say|says|said|get|gets|got|gotten|find|finds|found|give|gives|gave|given|think|thinks|thought|know|knows|knew|known)\b/i;
+        if (!verbIndicators.test(lower) && !/\b\w+ed\b/.test(lower)) return false;
+        if (!/\s/.test(trimmed)) return false;
+        if (/^[^a-zA-Z0-9'"]/.test(trimmed)) return false;
+        return true;
+    }
+
+    function extractValidExample(data) {
+        if (!data || !data[0]) return null;
+        const meanings = data[0].meanings;
+        if (!meanings) return null;
+        for (const meaning of meanings) {
+            const definitions = meaning.definitions;
+            if (definitions) {
+                for (const def of definitions) {
+                    if (def.example && isValidSentence(def.example)) return def.example;
+                }
+            }
+        }
+        return null;
+    }
+
+    async function fetchOxfordExample(word) {
+        if (!word) return null;
+        try {
+            const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+            if (!res.ok) return null;
+            const data = await res.json();
+            return extractValidExample(data);
+        } catch (err) { return null; }
+    }
+
+    async function exportData(db) {
+        const dataStr = JSON.stringify({ wordBank: db.wordBank }, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `ariels_backup_${getTodayStr()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert("✅ 数据已导出");
+    }
+
+    function importData(file, db, onComplete) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.wordBank && Array.isArray(imported.wordBank)) {
+                    if (confirm("导入将覆盖当前所有单词数据，建议先导出备份。继续？")) {
+                        db.wordBank = imported.wordBank;
+                        db.save();
+                        alert("数据导入成功，请刷新页面");
+                        if (onComplete) onComplete();
+                        location.reload();
+                    }
+                } else alert("文件格式不正确");
+            } catch (err) { alert("解析失败，文件可能已损坏"); }
+        };
+        reader.readAsText(file);
+    }
+
+    function manualSave(db) {
+        db.save();
+        alert("✅ 当前数据已手动保存");
+    }
+
+    // ========== 邀请码模块 ==========
+    async function verifyInviteCode(code) {
+        try {
+            const response = await fetch(`${API_BASE}/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                localStorage.setItem('invite_verified', 'true');
+                sessionStorage.setItem('invite_verified', 'true');
+                return true;
+            } else return false;
+        } catch (err) {
+            console.error(err);
+            return false;
+        }
+    }
+
+    function isInviteVerified() {
+        return localStorage.getItem('invite_verified') === 'true' || sessionStorage.getItem('invite_verified') === 'true';
+    }
 
     function simpleHash(str) {
         let h = 0;
-        for (let i = 0; i < str.length; i++) {
-            h = ((h << 5) - h) + str.charCodeAt(i);
-            h |= 0;
-        }
+        for (let i = 0; i < str.length; i++) h = ((h << 5) - h) + str.charCodeAt(i);
         return h.toString();
     }
-    function loadInviteData() {
-        const v = localStorage.getItem('invite_valid_codes');
-        const u = localStorage.getItem('invite_used_codes');
-        const a = localStorage.getItem('admin_password_hash');
-        validInviteCodes = v ? JSON.parse(v) : ['WELCOME-2025'];
-        usedInviteCodes = u ? JSON.parse(u) : [];
-        adminPasswordHash = a || null;
-        saveInviteData();
+
+    function isAdminPasswordSet() {
+        return localStorage.getItem('admin_password_hash') !== null;
     }
-    function saveInviteData() {
-        localStorage.setItem('invite_valid_codes', JSON.stringify(validInviteCodes));
-        localStorage.setItem('invite_used_codes', JSON.stringify(usedInviteCodes));
-        if (adminPasswordHash) localStorage.setItem('admin_password_hash', adminPasswordHash);
-    }
-    function generateRandomCode() {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
-        let code = '';
-        for (let i = 0; i < 8; i++) {
-            code += chars[Math.floor(Math.random() * chars.length)];
-            if (i === 3) code += '-';
-        }
-        return code;
-    }
-    function generateInviteCodes(count) {
-        const newCodes = [];
-        for (let i = 0; i < count; i++) {
-            let code = generateRandomCode();
-            while (validInviteCodes.includes(code) || usedInviteCodes.includes(code)) code = generateRandomCode();
-            validInviteCodes.push(code);
-            newCodes.push(code);
-        }
-        saveInviteData();
-        return newCodes;
-    }
-    function verifyInviteCode(code) {
-        loadInviteData();
-        const norm = code.trim().toUpperCase();
-        if (validInviteCodes.includes(norm)) {
-            const idx = validInviteCodes.indexOf(norm);
-            validInviteCodes.splice(idx, 1);
-            usedInviteCodes.push(norm);
-            saveInviteData();
-            localStorage.setItem('invite_verified', 'true');
-            sessionStorage.setItem('invite_verified', 'true');
-            isVerified = true;
+
+    function verifyAdminPassword(pwd) {
+        const storedHash = localStorage.getItem('admin_password_hash');
+        if (!storedHash) {
+            localStorage.setItem('admin_password_hash', simpleHash(pwd));
             return true;
         }
-        return false;
+        return simpleHash(pwd) === storedHash;
     }
-    function isInviteVerified() {
-        if (isVerified) return true;
-        const sess = sessionStorage.getItem('invite_verified');
-        if (sess === 'true') {
-            isVerified = true;
-            return true;
-        }
-        return localStorage.getItem('invite_verified') === 'true';
-    }
+
     function resetInviteStorage() {
-        if (confirm("⚠️ 重置邀请码存储会清除所有有效和已使用的邀请码，仅保留初始码 WELCOME-2025，并且需要重新设置管理员密码。确认吗？")) {
+        if (confirm("重置所有邀请码数据？")) {
             localStorage.removeItem('invite_valid_codes');
             localStorage.removeItem('invite_used_codes');
             localStorage.removeItem('admin_password_hash');
             localStorage.removeItem('invite_verified');
             sessionStorage.removeItem('invite_verified');
-            isVerified = false;
-            loadInviteData();
-            alert("已重置！请刷新页面重新设置管理员密码。");
+            alert("已重置，请刷新页面");
             location.reload();
         }
     }
-    function isAdminPasswordSet() { return adminPasswordHash !== null; }
-    function verifyAdminPassword(pwd) {
-        if (!adminPasswordHash) {
-            adminPasswordHash = simpleHash(pwd);
-            saveInviteData();
-            return true;
+
+    // ========== 艾宾浩斯复习逻辑 ==========
+    const EBBINGHAUS_INTERVALS = [1, 2, 4, 7, 15, 30];
+    function updateReviewProgress(word, isCorrect) {
+        if (!isCorrect) {
+            word.reviewStage = 0;
+            word.lastReviewDate = getTodayStr();
+            word.nextTime = Date.now() + EBBINGHAUS_INTERVALS[0] * 24 * 60 * 60 * 1000;
+        } else {
+            word.reviewStage = (word.reviewStage === undefined ? 0 : word.reviewStage) + 1;
+            word.lastReviewDate = getTodayStr();
+            if (word.reviewStage < EBBINGHAUS_INTERVALS.length) {
+                word.nextTime = Date.now() + EBBINGHAUS_INTERVALS[word.reviewStage] * 24 * 60 * 60 * 1000;
+            } else word.nextTime = null;
         }
-        return simpleHash(pwd) === adminPasswordHash;
     }
 
-    // 简化版的单词库、艾宾浩斯、听写等核心功能（因篇幅有限，这里仅提供框架，实际运行时需要补充完整逻辑）
-    // 由于这个单文件主要用于测试，我会省略详细实现，但可以保证基础展示。如果用户需要完整功能，我可以再补充。
-    // 为节省时间，先提供一个可运行的框架，确保页面不空白。
-    function initUI() {
-        // 确保主容器显示
-        if (isInviteVerified()) {
+    function isDueForReview(word) {
+        if (word.reviewStage === undefined) return true;
+        if (word.reviewStage >= EBBINGHAUS_INTERVALS.length) return false;
+        const next = word.nextTime || 0;
+        return next === 0 || next <= Date.now();
+    }
+
+    function getWordAccuracy(word) {
+        if (!word.attempts || word.attempts === 0) return 1;
+        return (word.attempts - (word.wrongCount || 0)) / word.attempts;
+    }
+
+    function getWordGroup(word) {
+        const acc = getWordAccuracy(word);
+        if (acc >= 0.8) return 'high';
+        if (acc >= 0.6) return 'medium';
+        return 'low';
+    }
+
+    // ========== 成就系统（简化） ==========
+    let unlockedAchievements = new Set();
+    const ACHIEVEMENTS = [
+        { id: "first_word", title: "初入词海", desc: "添加第一个单词", icon: "🎉" },
+        { id: "ten_words", title: "十词起步", desc: "累计添加10个单词", icon: "📚" },
+        { id: "fifty_words", title: "词汇达人", desc: "累计添加50个单词", icon: "🏅" },
+        { id: "perfect_rate_80", title: "正确率80%", desc: "单词平均正确率≥80%", icon: "💯" },
+        { id: "ten_quiz", title: "勤学苦练", desc: "完成10次听写", icon: "✍️" },
+        { id: "ebbinghaus_master", title: "艾宾浩斯大师", desc: "完成一个单词的全部复习周期", icon: "🧠" },
+        { id: "first_correct", title: "旗开得胜", desc: "第一次听写答对", icon: "⭐" }
+    ];
+
+    function loadUnlockedAchievements() {
+        const saved = localStorage.getItem('ariel_achievements_unlocked');
+        if (saved) unlockedAchievements = new Set(JSON.parse(saved));
+    }
+    function saveUnlockedAchievements() {
+        localStorage.setItem('ariel_achievements_unlocked', JSON.stringify([...unlockedAchievements]));
+    }
+    function showAchievementToast(ach) {
+        const toast = document.createElement('div');
+        toast.className = 'achievement-toast';
+        toast.innerHTML = `<div class="icon">${ach.icon}</div><div class="text"><div class="title">🎖️ 获得新成就！</div><div>${escapeHtml(ach.title)} - ${escapeHtml(ach.desc)}</div></div>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    function checkAndUnlockAchievements(db) {
+        let newUnlocked = [];
+        if (!unlockedAchievements.has('first_word') && db.wordBank.length >= 1) { unlockedAchievements.add('first_word'); newUnlocked.push(ACHIEVEMENTS.find(a => a.id === 'first_word')); }
+        if (!unlockedAchievements.has('ten_words') && db.wordBank.length >= 10) { unlockedAchievements.add('ten_words'); newUnlocked.push(ACHIEVEMENTS.find(a => a.id === 'ten_words')); }
+        if (!unlockedAchievements.has('fifty_words') && db.wordBank.length >= 50) { unlockedAchievements.add('fifty_words'); newUnlocked.push(ACHIEVEMENTS.find(a => a.id === 'fifty_words')); }
+        if (!unlockedAchievements.has('perfect_rate_80')) {
+            let totalCorrect = 0, totalAttempts = 0;
+            for (let w of db.wordBank) {
+                if (w.attempts > 0) { totalAttempts += w.attempts; totalCorrect += (w.attempts - (w.wrongCount || 0)); }
+            }
+            if (totalAttempts > 0 && totalCorrect / totalAttempts >= 0.8) { unlockedAchievements.add('perfect_rate_80'); newUnlocked.push(ACHIEVEMENTS.find(a => a.id === 'perfect_rate_80')); }
+        }
+        if (!unlockedAchievements.has('ten_quiz')) {
+            let totalAttempts = 0;
+            for (let w of db.wordBank) totalAttempts += (w.attempts || 0);
+            if (totalAttempts >= 10) { unlockedAchievements.add('ten_quiz'); newUnlocked.push(ACHIEVEMENTS.find(a => a.id === 'ten_quiz')); }
+        }
+        if (!unlockedAchievements.has('ebbinghaus_master')) {
+            if (db.wordBank.some(w => (w.reviewStage || 0) >= 6)) { unlockedAchievements.add('ebbinghaus_master'); newUnlocked.push(ACHIEVEMENTS.find(a => a.id === 'ebbinghaus_master')); }
+        }
+        if (!unlockedAchievements.has('first_correct')) {
+            if (db.wordBank.some(w => (w.attempts - (w.wrongCount || 0)) > 0)) { unlockedAchievements.add('first_correct'); newUnlocked.push(ACHIEVEMENTS.find(a => a.id === 'first_correct')); }
+        }
+        if (newUnlocked.length) {
+            saveUnlockedAchievements();
+            newUnlocked.forEach(ach => { if (ach) showAchievementToast(ach); });
+        }
+    }
+
+    function renderAchievementsTab(container) {
+        const list = ACHIEVEMENTS.map(ach => {
+            const unlocked = unlockedAchievements.has(ach.id);
+            return `<div class="achievement-card ${unlocked ? '' : 'locked'}"><div class="icon">${ach.icon}</div><div class="info"><div class="title">${escapeHtml(ach.title)}</div><div class="desc">${escapeHtml(ach.desc)}</div><div class="progress">${unlocked ? '✅ 已获得' : '🔒 未解锁'}</div></div></div>`;
+        }).join('');
+        container.innerHTML = `<div class="section-header"><h2>🏆 我的成就</h2></div><div class="achievements-grid">${list}</div>`;
+    }
+
+    // ========== 单词库模块 ==========
+    function renderUnderstanding() {
+        const container = document.getElementById('understanding-words-container');
+        if (!container) return;
+        const words = db.wordBank.filter(w => w.mode === 'meaning');
+        container.innerHTML = '';
+        if (!words.length) { container.innerHTML = '<div class="empty-state">✨ 暂无了解词库单词，点击上方添加</div>'; return; }
+        words.forEach(word => {
+            const card = document.createElement('div'); card.className = 'word-card';
+            const meta = word.pos ? `<span class="badge">${escapeHtml(word.pos)}</span>` : '';
+            card.innerHTML = `<div class="word-info"><div class="word-english">${escapeHtml(word.english)}<button class="icon-small play-word-btn">🔊</button></div><div class="word-chinese">${escapeHtml(word.chinese)}</div>${word.example ? `<div class="example-box">📖 ${escapeHtml(word.example)}</div>` : ''}<div class="word-meta">${meta}<span class="badge">👁️ 了解</span></div></div><div class="word-actions"><button class="icon-small delete-btn">🗑️</button></div>`;
+            container.appendChild(card);
+            attachCardEvents(card, word);
+        });
+    }
+
+    function renderSpelling() {
+        const container = document.getElementById('spelling-words-container');
+        if (!container) return;
+        const words = db.wordBank.filter(w => w.mode === 'spell');
+        container.innerHTML = '';
+        if (!words.length) { container.innerHTML = '<div class="empty-state">✨ 暂无默写单词，点击上方添加</div>'; return; }
+        words.forEach(word => {
+            const acc = getWordAccuracy(word);
+            const percent = word.attempts ? Math.round(acc * 100) : 100;
+            let gClass = '', gIcon = '';
+            if (acc >= 0.8) { gClass = 'high'; gIcon = '💯'; }
+            else if (acc >= 0.6) { gClass = 'medium'; gIcon = '🔵'; }
+            else { gClass = 'low'; gIcon = '💪🏻'; }
+            const due = isDueForReview(word);
+            const card = document.createElement('div'); card.className = 'word-card';
+            card.innerHTML = `<div class="word-info"><div class="word-english">${escapeHtml(word.english)}<button class="icon-small play-word-btn">🔊</button></div><div class="word-chinese">${escapeHtml(word.chinese)}</div>${word.example ? `<div class="example-box">📖 ${escapeHtml(word.example)}</div>` : ''}<div class="word-meta"><span class="badge">✍️ 默写</span><span class="badge ${gClass}">${gIcon} ${percent}%</span>${word.wrongCount ? `<span class="badge wrong">❌ ${word.wrongCount}次</span>` : ''}${word.attempts ? `<span class="badge">🎧 ${word.attempts}次</span>` : ''}${due ? `<span class="badge due">📅待复习</span>` : ''}</div></div><div class="word-actions"><button class="icon-small wrong-inc-btn">🔁 +1错</button><button class="icon-small delete-btn">🗑️</button></div>`;
+            container.appendChild(card);
+            attachCardEvents(card, word);
+        });
+    }
+
+    function attachCardEvents(card, word) {
+        const play = card.querySelector('.play-word-btn');
+        if (play) play.onclick = (e) => { e.stopPropagation(); speakEnglishWord(word.english, AppState.currentAccent); };
+        const inc = card.querySelector('.wrong-inc-btn');
+        if (inc) inc.onclick = () => {
+            word.wrongCount = (word.wrongCount || 0) + 1;
+            word.attempts = (word.attempts || 0) + 1;
+            updateReviewProgress(word, false);
+            db.save();
+            renderSpelling();
+            updateSpellList();
+            checkAndUnlockAchievements(db);
+        };
+        const del = card.querySelector('.delete-btn');
+        if (del) del.onclick = () => {
+            if (confirm(`删除单词“${word.english}”？`)) {
+                const idx = db.wordBank.findIndex(w => w.id === word.id);
+                if (idx !== -1) db.wordBank.splice(idx, 1);
+                db.save();
+                renderUnderstanding();
+                renderSpelling();
+                updateSpellList();
+                checkAndUnlockAchievements(db);
+            }
+        };
+    }
+
+    function showAddUnderstandingForm() { document.getElementById('add-understanding-form').classList.remove('hidden'); }
+    function hideAddUnderstandingForm() {
+        document.getElementById('add-understanding-form').classList.add('hidden');
+        document.getElementById('new-uci').value = '';
+        document.getElementById('new-ueng').value = '';
+        document.getElementById('new-u-pos').value = '';
+        document.getElementById('temp-ex').value = '';
+    }
+    async function autoFillUnderstanding() {
+        const eng = document.getElementById('new-ueng');
+        const posInput = document.getElementById('new-u-pos');
+        const chiInput = document.getElementById('new-uci');
+        const exampleInput = document.getElementById('temp-ex');
+        const word = eng.value.trim();
+        if (!word) { alert("请先输入英文单词"); eng.focus(); return; }
+        posInput.placeholder = "检测中...";
+        chiInput.placeholder = "翻译中...";
+        const translation = await fetchTranslation(word);
+        let example = null;
+        if (translation) {
+            let pos = detectPartOfSpeech(word);
+            let finalChinese = translation;
+            const posRegex = /^(n\.|adj\.|v\.|adv\.|prep\.|conj\.|pron\.)\s+/i;
+            if (posRegex.test(finalChinese)) {
+                const match = finalChinese.match(posRegex);
+                if (match && !pos) pos = match[1].toLowerCase();
+                finalChinese = finalChinese.replace(posRegex, '').trim();
+            }
+            posInput.value = pos || "";
+            chiInput.value = finalChinese;
+            example = await fetchOxfordExample(word);
+            if (exampleInput) exampleInput.value = example || "";
+        } else {
+            alert("自动翻译失败，请手动输入");
+            posInput.value = "";
+            chiInput.value = "";
+            if (exampleInput) exampleInput.value = "";
+        }
+        posInput.placeholder = "词性";
+        chiInput.placeholder = "中文释义";
+    }
+    function addUnderstandingWord() {
+        const pos = document.getElementById('new-u-pos').value.trim();
+        const ch = document.getElementById('new-uci').value.trim();
+        const en = document.getElementById('new-ueng').value.trim();
+        const example = document.getElementById('temp-ex').value.trim();
+        if (!ch || !en) { alert("请完整填写英文和中文"); return; }
+        if (db.wordBank.some(w => w.english.toLowerCase() === en.toLowerCase())) { alert("单词已存在"); return; }
+        const fullChinese = pos ? `${pos} ${ch}` : ch;
+        db.wordBank.push({
+            id: Date.now(), chinese: fullChinese, english: en, mode: 'meaning',
+            wrongCount: 0, attempts: 0, createdDate: getTodayStr(), pos: pos, example: example
+        });
+        db.save();
+        hideAddUnderstandingForm();
+        renderUnderstanding();
+        checkAndUnlockAchievements(db);
+        updateSpellList();
+    }
+
+    function showAddSpellingForm() { document.getElementById('add-spelling-form').classList.remove('hidden'); }
+    function hideAddSpellingForm() {
+        document.getElementById('add-spelling-form').classList.add('hidden');
+        document.getElementById('new-sci').value = '';
+        document.getElementById('new-seng').value = '';
+        document.getElementById('temp-ex').value = '';
+    }
+    async function autoFillSpelling() {
+        const eng = document.getElementById('new-seng');
+        const chi = document.getElementById('new-sci');
+        const exampleInput = document.getElementById('temp-ex');
+        const word = eng.value.trim();
+        if (!word) { alert("请先输入英文单词"); eng.focus(); return; }
+        chi.placeholder = "翻译中...";
+        const translation = await fetchTranslation(word);
+        let example = null;
+        if (translation) {
+            chi.value = translation;
+            example = await fetchOxfordExample(word);
+            if (exampleInput) exampleInput.value = example || "";
+        } else {
+            alert("翻译失败，请手动输入");
+            chi.value = "";
+            if (exampleInput) exampleInput.value = "";
+        }
+        chi.placeholder = "中文释义";
+    }
+    function addSpellingWord() {
+        const ch = document.getElementById('new-sci').value.trim();
+        const en = document.getElementById('new-seng').value.trim();
+        const example = document.getElementById('temp-ex').value.trim();
+        if (!ch || !en) { alert("请完整填写中文和英文"); return; }
+        if (db.wordBank.some(w => w.english.toLowerCase() === en.toLowerCase())) { alert("单词已存在"); return; }
+        db.wordBank.push({
+            id: Date.now(), chinese: ch, english: en, mode: 'spell',
+            wrongCount: 0, attempts: 0, reviewStage: 0, lastReviewDate: null, createdDate: getTodayStr(), example: example
+        });
+        db.save();
+        hideAddSpellingForm();
+        renderSpelling();
+        updateSpellList();
+        checkAndUnlockAchievements(db);
+    }
+
+    // ========== 听写练习模块 ==========
+    let quizStartTime = 0;
+    let currentWord = null;
+
+    function updateSpellList() {
+        let filtered = db.wordBank.filter(w => w.mode === 'spell');
+        if (useEbbinghaus) filtered = filtered.filter(w => isDueForReview(w));
+        if (currentGroup !== 'all') filtered = filtered.filter(w => getWordGroup(w) === currentGroup);
+        if (wrongPriority) filtered.sort((a, b) => (b.wrongCount || 0) - (a.wrongCount || 0) || a.id - b.id);
+        else filtered.sort((a, b) => a.id - b.id);
+        spellWordList = filtered;
+        if (currentQuizIndex >= spellWordList.length) currentQuizIndex = 0;
+        AppState.spellWordList = spellWordList;
+        updateQuizNav();
+    }
+
+    function startNewQuiz() {
+        updateSpellList();
+        const container = document.getElementById('quiz-card');
+        if (!spellWordList.length) { container.innerHTML = '<div class="empty-state">当前分组暂无单词</div>'; updateQuizNav(); return; }
+        const word = spellWordList[currentQuizIndex];
+        currentWord = word;
+        quizStartTime = Date.now();
+        container.innerHTML = `<div class="quiz-word">📖 ${escapeHtml(word.chinese)}</div><div class="quiz-hint">🔊 点击喇叭听发音，输入英文</div><div class="quiz-input-area"><input type="text" id="quiz-answer-input" placeholder="请输入英文" autocomplete="off"><button id="play-quiz-sound" class="play-btn">🔊 朗读单词</button><button id="submit-answer-btn" class="btn-primary">✍️ 提交答案</button></div><div id="quiz-feedback" class="quiz-feedback"></div><div id="quiz-result" class="quiz-result-card" style="display:none;"></div>`;
+        document.getElementById('play-quiz-sound').onclick = () => speakEnglishWord(word.english, currentAccent);
+        document.getElementById('submit-answer-btn').onclick = () => submitAnswer(word);
+        document.getElementById('quiz-answer-input').focus();
+        updateQuizNav();
+    }
+
+    async function submitAnswer(word) {
+        const input = document.getElementById('quiz-answer-input');
+        const userAnswer = input.value.trim().toLowerCase();
+        const correct = word.english.toLowerCase();
+        const isCorrect = (userAnswer === correct);
+        const elapsed = (Date.now() - quizStartTime) / 1000;
+        word.attempts = (word.attempts || 0) + 1;
+        if (!isCorrect) word.wrongCount = (word.wrongCount || 0) + 1;
+        updateReviewProgress(word, isCorrect);
+        db.save();
+        checkAndUnlockAchievements(db);
+        const feedbackDiv = document.getElementById('quiz-feedback');
+        feedbackDiv.innerHTML = isCorrect ? '✅ 正确！' : `❌ 错误！正确答案: ${word.english}`;
+        feedbackDiv.style.color = isCorrect ? 'green' : '#b91c1c';
+        const accuracyPercent = Math.round(getWordAccuracy(word) * 100);
+        const nextReview = word.nextTime ? formatReviewDate(word.nextTime) : '已完成';
+        const exampleHtml = word.example ? `<div class="example-box" style="margin-top:12px;">📖 例句：${escapeHtml(word.example)}</div>` : '';
+        const resultDiv = document.getElementById('quiz-result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `<div class="stat-row"><span>⏱️ 本次用时</span><span>${elapsed.toFixed(1)} 秒</span></div><div class="stat-row"><span>📅 下次复习</span><span>${nextReview}</span></div><div class="stat-row"><span>📊 单词正确率</span><span>${accuracyPercent}% (基于${word.attempts}次练习)</span></div>${exampleHtml}<div class="mnemonic-area"><label>🧠 记忆口诀/联想：</label><textarea id="word-mnemonic" placeholder="例如：他日他哥 → heritage 遗产..." rows="2">${word.mnemonic || ''}</textarea><button id="save-mnemonic-btn" class="icon-small" style="margin-top:8px;">💾 保存</button></div>`;
+        document.getElementById('save-mnemonic-btn').onclick = () => { const newMnemonic = document.getElementById('word-mnemonic').value.trim(); word.mnemonic = newMnemonic; db.save(); alert('记忆口诀已保存'); };
+        setTimeout(() => {
+            if (currentQuizIndex + 1 < spellWordList.length) { currentQuizIndex++; startNewQuiz(); }
+            else if (currentQuizIndex + 1 === spellWordList.length) { document.getElementById('quiz-card').innerHTML = '<div class="empty-state">🎉 恭喜！当前分组所有单词已完成复习！</div>'; updateQuizNav(); }
+            else updateQuizNav();
+        }, 2000);
+    }
+
+    function updateQuizNav() {
+        const total = spellWordList.length;
+        const counter = document.getElementById('word-counter');
+        if (counter) counter.textContent = total ? `${currentQuizIndex + 1}/${total}` : `0/0`;
+        const prevBtn = document.getElementById('prev-word-btn');
+        const nextBtn = document.getElementById('next-word-btn');
+        if (prevBtn && nextBtn) {
+            prevBtn.disabled = total === 0 || currentQuizIndex === 0;
+            nextBtn.disabled = total === 0 || currentQuizIndex === total - 1;
+        }
+    }
+
+    function prevWord() { if (currentQuizIndex > 0) { currentQuizIndex--; startNewQuiz(); } }
+    function nextWord() { if (currentQuizIndex < spellWordList.length - 1) { currentQuizIndex++; startNewQuiz(); } }
+
+    // ========== 个人信息模块 ==========
+    let currentAvatarBase64 = null;
+    function renderProfileTab() {
+        const main = document.getElementById('main-view');
+        const nick = localStorage.getItem('ariels_nickname') || '';
+        const avatar = localStorage.getItem('ariels_avatar') || '';
+        currentAvatarBase64 = avatar;
+        main.innerHTML = `<div class="profile-container"><div class="avatar-section"><img id="avatar-img" src="${avatar || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'50\' fill=\'%233b82f6\'/%3E%3Ctext x=\'50\' y=\'67\' font-size=\'50\' text-anchor=\'middle\' fill=\'white\'%3E❄️%3C/text%3E%3C/svg%3E'}" alt="头像"><input type="file" id="avatar-upload" accept="image/*"><button id="upload-avatar-btn" class="icon-btn">📷 上传头像</button></div><div class="nickname-section"><label>昵称：</label><input type="text" id="nickname-input" placeholder="输入你的昵称" maxlength="20" value="${escapeHtml(nick)}"><button id="save-profile-btn" class="icon-btn">💾 保存</button></div><div class="data-actions"><button id="profile-export-btn" class="icon-btn">📤 导出记忆</button><button id="profile-import-btn" class="icon-btn">📥 导入记忆</button><button id="profile-manual-save-btn" class="icon-btn">💿 手动保存</button></div><div class="stats-summary"><h3>📊 学习统计</h3><div style="display:flex; justify-content:space-around; margin:20px 0;"><div><b>${db.wordBank.length}</b><br><small>总词条</small></div><div><b>${db.wordBank.filter(w => w.mode === 'spell').length}</b><br><small>默写词</small></div><div><b>${db.wordBank.filter(w => w.mode === 'meaning').length}</b><br><small>了解词</small></div></div></div><div class="info-note"><p>💡 提示：导出记忆会下载一个JSON文件，请妥善保管；导入记忆将覆盖当前所有单词数据，建议先导出备份。</p><p style="margin-top:8px; color:red; font-size:10px; cursor:pointer;" onclick="if(confirm('清空所有数据？')){localStorage.clear();location.reload();}">彻底重置系统</p></div></div>`;
+        document.getElementById('upload-avatar-btn').onclick = () => document.getElementById('avatar-upload').click();
+        document.getElementById('avatar-upload').onchange = (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => { document.getElementById('avatar-img').src = ev.target.result; currentAvatarBase64 = ev.target.result; alert("头像已上传，记得点击保存"); };
+                reader.readAsDataURL(file);
+            } else alert("请选择图片文件");
+            e.target.value = '';
+        };
+        document.getElementById('save-profile-btn').onclick = () => {
+            const nick = document.getElementById('nickname-input').value.trim();
+            if (nick) localStorage.setItem('ariels_nickname', nick);
+            else localStorage.removeItem('ariels_nickname');
+            if (currentAvatarBase64) localStorage.setItem('ariels_avatar', currentAvatarBase64);
+            else localStorage.removeItem('ariels_avatar');
+            alert("个人信息已保存");
+        };
+        document.getElementById('profile-export-btn').onclick = () => exportData(db);
+        document.getElementById('profile-import-btn').onclick = () => document.getElementById('import-file').click();
+        document.getElementById('profile-manual-save-btn').onclick = () => manualSave(db);
+    }
+
+    // ========== 公告模块 ==========
+    async function loadNotice() {
+        try {
+            const res = await fetch(`/notice.json?t=${Date.now()}`);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            const content = data.content || '';
+            document.getElementById('notice-content').innerHTML = content;
+            document.getElementById('notice-bar').classList.remove('hidden');
+        } catch (e) {
+            document.getElementById('notice-bar').classList.add('hidden');
+        }
+    }
+
+    // ========== 主应用 ==========
+    class Database {
+        constructor() {
+            this.wordBank = [];
+            this.load();
+        }
+        load() {
+            const saved = localStorage.getItem('ariel_words_data');
+            if (saved) {
+                const data = JSON.parse(saved);
+                this.wordBank = data.wordBank || [];
+                this.isLoggedIn = data.isLoggedIn || false;
+            } else {
+                this.wordBank = [];
+                this.isLoggedIn = false;
+            }
+        }
+        save() {
+            localStorage.setItem('ariel_words_data', JSON.stringify({ wordBank: this.wordBank, isLoggedIn: this.isLoggedIn }));
+        }
+    }
+
+    let db = new Database();
+    let spellWordList = [];
+    let currentQuizIndex = 0;
+    let useEbbinghaus = true;
+    let currentGroup = 'all';
+    let wrongPriority = true;
+    let currentAccent = 'en-GB';
+
+    const AppState = { spellWordList, currentQuizIndex, db, currentAccent, currentTab: 'understanding', useEbbinghaus, currentGroup, wrongPriority, setState(updates) { Object.assign(this, updates); } };
+
+    let adminClicks = 0, adminTimer = null;
+
+    async function init() {
+        await loadNotice();
+        const urlParams = new URLSearchParams(window.location.search);
+        const codeParam = urlParams.get('code');
+        if (codeParam && await verifyInviteCode(codeParam)) {
+            db.isLoggedIn = true;
+            db.save();
+        }
+        if (db.isLoggedIn) {
             document.getElementById('invite-overlay').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
-            document.getElementById('notice-bar').classList.remove('hidden');
-            document.getElementById('notice-content').innerHTML = "✨ 欢迎使用！请从“了解词库”开始添加单词。";
+            await renderMainView('understanding');
+            bindEvents();
+            updateSpellList();
+            renderUnderstanding();
         } else {
-            document.getElementById('invite-overlay').style.display = 'flex';
-            document.getElementById('app-container').style.display = 'none';
-            document.getElementById('submit-invite-btn').onclick = () => {
-                const code = document.getElementById('invite-code-input').value.trim();
-                if (verifyInviteCode(code)) {
+            const submitBtn = document.getElementById('submit-invite-btn');
+            const inputEl = document.getElementById('invite-code-input');
+            const errorDiv = document.getElementById('invite-error');
+            submitBtn.onclick = async () => {
+                const code = inputEl.value.trim();
+                if (await verifyInviteCode(code)) {
+                    db.isLoggedIn = true;
+                    db.save();
                     location.reload();
                 } else {
-                    document.getElementById('invite-error').style.display = 'block';
-                    setTimeout(() => document.getElementById('invite-error').style.display = 'none', 2000);
+                    errorDiv.style.display = 'block';
+                    setTimeout(() => errorDiv.style.display = 'none', 2000);
                 }
             };
-            document.getElementById('reset-storage-btn').onclick = resetInviteStorage;
         }
-        // 管理员面板逻辑
-        let clickCount = 0, clickTimer = null;
-        document.getElementById('clickable-title').addEventListener('click', () => {
-            clickCount++;
-            if (clickTimer) clearTimeout(clickTimer);
-            clickTimer = setTimeout(() => { clickCount = 0; }, 1000);
-            if (clickCount >= 5) {
-                clickCount = 0;
+    }
+
+    async function renderMainView(tab) {
+        const main = document.getElementById('main-view');
+        if (tab === 'understanding') {
+            main.innerHTML = `
+                <div class="section-header"><h2>了解词库</h2><button id="add-understanding-btn" class="icon-btn">➕ 新单词</button></div>
+                <div id="add-understanding-form" class="add-word-panel hidden">
+                    <h3>添加新单词（了解即可）</h3>
+                    <div class="form-row">
+                        <input type="text" id="new-u-pos" placeholder="词性" autocomplete="off" style="width:100px;">
+                        <input type="text" id="new-uci" placeholder="中文释义" autocomplete="off">
+                        <input type="text" id="new-ueng" placeholder="英文单词" autocomplete="off">
+                        <button id="auto-fetch-u" class="icon-small mini-btn" type="button">🤖 自动翻译</button>
+                        <button id="confirm-u-add" class="btn-primary">确认添加</button>
+                        <button id="cancel-u-add" class="btn-secondary">取消</button>
+                    </div>
+                </div>
+                <div id="understanding-words-container" class="word-list-container"></div>
+            `;
+            document.getElementById('add-understanding-btn').onclick = showAddUnderstandingForm;
+            document.getElementById('confirm-u-add').onclick = addUnderstandingWord;
+            document.getElementById('cancel-u-add').onclick = hideAddUnderstandingForm;
+            document.getElementById('auto-fetch-u').onclick = autoFillUnderstanding;
+            renderUnderstanding();
+        } else if (tab === 'spelling') {
+            main.innerHTML = `
+                <div class="section-header"><h2>默写词库</h2><button id="add-spelling-btn" class="icon-btn">➕ 新单词</button></div>
+                <div id="add-spelling-form" class="add-word-panel hidden">
+                    <h3>添加新单词（需要默写）</h3>
+                    <div class="form-row">
+                        <input type="text" id="new-sci" placeholder="中文释义" autocomplete="off">
+                        <input type="text" id="new-seng" placeholder="英文单词" autocomplete="off">
+                        <button id="auto-fetch-s" class="icon-small mini-btn" type="button">🤖 自动翻译</button>
+                        <button id="confirm-s-add" class="btn-primary">确认添加</button>
+                        <button id="cancel-s-add" class="btn-secondary">取消</button>
+                    </div>
+                </div>
+                <div id="spelling-words-container" class="word-list-container"></div>
+            `;
+            document.getElementById('add-spelling-btn').onclick = showAddSpellingForm;
+            document.getElementById('confirm-s-add').onclick = addSpellingWord;
+            document.getElementById('cancel-s-add').onclick = hideAddSpellingForm;
+            document.getElementById('auto-fetch-s').onclick = autoFillSpelling;
+            renderSpelling();
+        } else if (tab === 'quiz') {
+            main.innerHTML = `
+                <div class="group-selector">
+                    <button class="group-btn active" data-group="all">📚 全部</button>
+                    <button class="group-btn" data-group="high">💯 完美掌握</button>
+                    <button class="group-btn" data-group="medium">🔵 仍需巩固</button>
+                    <button class="group-btn" data-group="low">💪🏻 重点突破</button>
+                </div>
+                <div class="quiz-settings">
+                    <label><input type="checkbox" id="priority-wrong-checkbox" checked> 优先听写错词</label>
+                    <label><input type="checkbox" id="use-ebbinghaus-filter" checked> 📅 艾宾浩斯周期复习</label>
+                    <button id="refresh-quiz-list" class="icon-btn">🔄 刷新列表</button>
+                </div>
+                <div class="quiz-nav">
+                    <button id="prev-word-btn" class="nav-btn">◀</button>
+                    <span id="word-counter" class="word-counter">0 / 0</span>
+                    <button id="next-word-btn" class="nav-btn">▶</button>
+                </div>
+                <div id="quiz-card" class="quiz-card"><div class="empty-state">✨ 请在上方选择一个分组开始听写</div></div>
+            `;
+            document.getElementById('refresh-quiz-list').onclick = () => { updateSpellList(); startNewQuiz(); };
+            document.getElementById('prev-word-btn').onclick = prevWord;
+            document.getElementById('next-word-btn').onclick = nextWord;
+            document.getElementById('priority-wrong-checkbox').onchange = (e) => { wrongPriority = e.target.checked; updateSpellList(); startNewQuiz(); };
+            document.getElementById('use-ebbinghaus-filter').onchange = (e) => { useEbbinghaus = e.target.checked; updateSpellList(); startNewQuiz(); };
+            document.querySelectorAll('.group-btn').forEach(btn => btn.onclick = () => {
+                currentGroup = btn.dataset.group;
+                document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                updateSpellList();
+                startNewQuiz();
+            });
+            updateSpellList();
+            startNewQuiz();
+        } else if (tab === 'profile') {
+            renderProfileTab();
+        } else if (tab === 'achievements') {
+            renderAchievementsTab(main);
+        }
+    }
+
+    function bindEvents() {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderMainView(tab);
+            });
+        });
+        const title = document.getElementById('clickable-title');
+        title.addEventListener('click', () => {
+            adminClicks++;
+            if (adminTimer) clearTimeout(adminTimer);
+            adminTimer = setTimeout(() => { adminClicks = 0; }, 1000);
+            if (adminClicks >= 5) {
+                adminClicks = 0;
                 if (isAdminPasswordSet()) {
                     const pwd = prompt("请输入管理员密码：");
                     if (pwd && verifyAdminPassword(pwd)) {
                         document.getElementById('admin-panel').classList.add('show');
-                        refreshAdminPanel();
+                        refreshAdminPanel(pwd);
                     } else alert("密码错误");
                 } else {
                     const newPwd = prompt("首次使用，请设置管理员密码：");
@@ -285,94 +1404,57 @@
                         verifyAdminPassword(newPwd);
                         alert("管理员密码已设置");
                         document.getElementById('admin-panel').classList.add('show');
-                        refreshAdminPanel();
+                        refreshAdminPanel(newPwd);
                     } else alert("必须设置密码");
                 }
             }
         });
-        document.getElementById('close-admin').onclick = () => document.getElementById('admin-panel').classList.remove('show');
-        document.getElementById('gen1-code').onclick = () => {
-            const codes = generateInviteCodes(1);
+        document.getElementById('gen1-code').onclick = async () => {
+            const key = prompt("请输入管理员密码：");
+            if (!key || !verifyAdminPassword(key)) return;
+            const codes = await generateInviteCodes(1, key);
             alert(`生成邀请码: ${codes[0]}\n链接: ${location.origin}${location.pathname}?code=${codes[0]}`);
-            refreshAdminPanel();
+            refreshAdminPanel(key);
         };
-        document.getElementById('gen5-code').onclick = () => {
-            const codes = generateInviteCodes(5);
+        document.getElementById('gen5-code').onclick = async () => {
+            const key = prompt("请输入管理员密码：");
+            if (!key || !verifyAdminPassword(key)) return;
+            const codes = await generateInviteCodes(5, key);
             alert(`生成邀请码:\n${codes.join('\n')}\n\n对应链接:\n${codes.map(c => `${location.origin}${location.pathname}?code=${c}`).join('\n')}`);
-            refreshAdminPanel();
+            refreshAdminPanel(key);
         };
-        document.getElementById('refresh-codes').onclick = refreshAdminPanel;
-        document.getElementById('reset-storage').onclick = resetInviteStorage;
+        document.getElementById('refresh-codes').onclick = async () => {
+            const key = prompt("请输入管理员密码：");
+            if (key && verifyAdminPassword(key)) refreshAdminPanel(key);
+        };
+        document.getElementById('reset-storage').onclick = () => resetInviteStorage();
+        document.getElementById('close-admin').onclick = () => document.getElementById('admin-panel').classList.remove('show');
+        document.getElementById('close-notice-btn').addEventListener('click', () => {
+            document.getElementById('notice-bar').classList.add('hidden');
+        });
+        document.getElementById('import-file').addEventListener('change', (e) => {
+            if (e.target.files.length) importData(e.target.files[0], db, () => location.reload());
+            e.target.value = '';
+        });
     }
-    function refreshAdminPanel() {
+
+    async function refreshAdminPanel(adminKey) {
         const container = document.getElementById('admin-codes-list');
         if (!container) return;
-        loadInviteData();
-        container.innerHTML = `
-            <div><strong>✅ 有效 (${validInviteCodes.length}):</strong></div>
-            ${validInviteCodes.map(code => `
-                <div style="margin:4px 0; display:flex; justify-content:space-between; align-items:center;">
-                    <span>${code}</span>
-                    <div>
-                        <button class="copy-code-btn" data-code="${code}" style="font-size:10px;">复制链接</button>
-                        <button class="delete-code-btn" data-code="${code}" style="font-size:10px; background:#dc2626; color:white; border:none; border-radius:1rem; padding:0.2rem 0.5rem;">删除</button>
-                    </div>
-                </div>
-            `).join('')}
-            <div style="margin-top:8px;"><strong>❌ 已使用 (${usedInviteCodes.length}):</strong></div>
-            ${usedInviteCodes.map(code => `<div style="color:#94a3b8;">${code}</div>`).join('')}
-        `;
-        document.querySelectorAll('.copy-code-btn').forEach(btn => {
-            btn.onclick = () => {
-                const code = btn.dataset.code;
-                const link = `${location.origin}${location.pathname}?code=${code}`;
-                navigator.clipboard.writeText(link);
-                alert("链接已复制");
-            };
-        });
-        document.querySelectorAll('.delete-code-btn').forEach(btn => {
-            btn.onclick = () => {
-                const code = btn.dataset.code;
-                if (confirm(`删除邀请码 ${code}？`)) {
-                    const idx = validInviteCodes.indexOf(code);
-                    if (idx !== -1) validInviteCodes.splice(idx, 1);
-                    saveInviteData();
-                    refreshAdminPanel();
-                }
-            };
-        });
+        try {
+            const response = await fetch(`${API_BASE}/list`, { headers: { 'X-Admin-Key': adminKey } });
+            if (!response.ok) throw new Error();
+            const { valid, used } = await response.json();
+            container.innerHTML = `<div><strong>✅ 有效 (${valid.length}):</strong></div>` + valid.map(code => `<div style="margin:4px 0; display:flex; justify-content:space-between; align-items:center;"><span>${code.code}</span><div><button class="copy-code-btn" data-code="${code.code}" style="font-size:10px;">复制链接</button><button class="delete-code-btn" data-code="${code.code}" style="font-size:10px; background:#dc2626; color:white; border:none; border-radius:1rem; padding:0.2rem 0.5rem;">删除</button></div></div>`).join('') + `<div style="margin-top:8px;"><strong>❌ 已使用 (${used.length}):</strong></div>` + used.map(item => `<div style="color:#94a3b8;">${item.code}</div>`).join('');
+            document.querySelectorAll('.copy-code-btn').forEach(btn => btn.onclick = () => { const code = btn.dataset.code; const link = `${location.origin}${location.pathname}?code=${code}`; navigator.clipboard.writeText(link); alert("链接已复制"); });
+            document.querySelectorAll('.delete-code-btn').forEach(btn => btn.onclick = async () => { const code = btn.dataset.code; if (confirm(`删除邀请码 ${code}？`)) { await fetch(`${API_BASE}/delete`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey }, body: JSON.stringify({ code }) }); refreshAdminPanel(adminKey); } });
+        } catch (err) { container.innerHTML = '<div>加载失败</div>'; }
     }
-    // 简易的标签页切换（占位）
-    function simpleTabSwitch() {
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tab = btn.dataset.tab;
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const main = document.getElementById('main-view');
-                if (tab === 'understanding') main.innerHTML = '<div class="empty-state">📖 了解词库开发中，请稍后...</div>';
-                else if (tab === 'spelling') main.innerHTML = '<div class="empty-state">✍️ 默写词库开发中，请稍后...</div>';
-                else if (tab === 'quiz') main.innerHTML = '<div class="empty-state">🎧 听写练习开发中，请稍后...</div>';
-                else if (tab === 'profile') main.innerHTML = '<div class="empty-state">👤 个人信息开发中，请稍后...</div>';
-                else if (tab === 'achievements') main.innerHTML = '<div class="empty-state">🏆 成就系统开发中，请稍后...</div>';
-            });
-        });
+
+    function generateInviteCodes(count, adminKey) {
+        return fetch(`${API_BASE}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey }, body: JSON.stringify({ count }) }).then(res => res.json()).then(data => data.codes);
     }
-    function init() {
-        loadInviteData();
-        initUI();
-        simpleTabSwitch();
-        const urlParams = new URLSearchParams(window.location.search);
-        const codeParam = urlParams.get('code');
-        if (codeParam && verifyInviteCode(codeParam)) {
-            location.reload();
-        }
-        if (isInviteVerified()) {
-            document.getElementById('invite-overlay').style.display = 'none';
-            document.getElementById('app-container').style.display = 'flex';
-            document.getElementById('main-view').innerHTML = '<div class="empty-state">✨ 欢迎使用 Ariel\'s Words Helper！功能已就绪。</div>';
-        }
-    }
+
     init();
 </script>
 </body>

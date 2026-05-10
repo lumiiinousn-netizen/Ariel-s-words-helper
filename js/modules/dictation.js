@@ -1,11 +1,13 @@
+// js/modules/dictation.js
 import { AppState } from '../app.js';
 import { speakEnglishWord, escapeHtml, formatReviewDate } from './utils.js';
-import { updateReviewProgress, getWordAccuracy, getNextReviewDateStr, updateSpellList } from './ebbinghaus.js';
+import { updateReviewProgress, getWordAccuracy, updateSpellList } from './ebbinghaus.js';
 import { checkAndUnlockAchievements } from './achievements.js';
 
 let quizStartTime = 0;
 let currentWord = null;
-let prevCallback = null, nextCallback = null;
+let prevCallback = null;
+let nextCallback = null;
 
 export function setQuizNavCallbacks(prev, next) {
     prevCallback = prev;
@@ -15,7 +17,7 @@ export function setQuizNavCallbacks(prev, next) {
 export function updateQuizNav() {
     const total = AppState.spellWordList.length;
     const counter = document.getElementById('word-counter');
-    if (counter) counter.textContent = total ? `${AppState.currentQuizIndex+1}/${total}` : `0/0`;
+    if (counter) counter.textContent = total ? `${AppState.currentQuizIndex + 1}/${total}` : `0/0`;
     const prevBtn = document.getElementById('prev-word-btn');
     const nextBtn = document.getElementById('next-word-btn');
     if (prevBtn && nextBtn) {
@@ -91,12 +93,16 @@ async function submitAnswer(word) {
             <button id="save-mnemonic-btn" class="icon-small" style="margin-top:8px;">💾 保存</button>
         </div>
     `;
-    document.getElementById('save-mnemonic-btn').onclick = () => {
-        const newMnemonic = document.getElementById('word-mnemonic').value.trim();
-        word.mnemonic = newMnemonic;
-        AppState.db.save();
-        alert('记忆口诀已保存');
-    };
+
+    const saveMnemonicBtn = document.getElementById('save-mnemonic-btn');
+    if (saveMnemonicBtn) {
+        saveMnemonicBtn.onclick = () => {
+            const newMnemonic = document.getElementById('word-mnemonic').value.trim();
+            word.mnemonic = newMnemonic;
+            AppState.db.save();
+            alert('记忆口诀已保存');
+        };
+    }
 
     // 自动跳转到下一个（延迟2秒）
     setTimeout(() => {
