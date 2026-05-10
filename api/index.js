@@ -41,7 +41,8 @@ app.post('/api/verify', async (req, res) => {
 
 app.post('/api/generate', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== process.env.ADMIN_KEY) {
+    const expectedKey = process.env.ADMIN_KEY;
+    if (!expectedKey || adminKey !== expectedKey) {
         return res.status(403).json({ error: '无权限' });
     }
     const { count = 1 } = req.body;
@@ -65,7 +66,8 @@ app.post('/api/generate', async (req, res) => {
 
 app.get('/api/list', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== process.env.ADMIN_KEY) {
+    const expectedKey = process.env.ADMIN_KEY;
+    if (!expectedKey || adminKey !== expectedKey) {
         return res.status(403).json({ error: '无权限' });
     }
     const { data: valid } = await supabase
@@ -83,7 +85,8 @@ app.get('/api/list', async (req, res) => {
 
 app.delete('/api/delete', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== process.env.ADMIN_KEY) {
+    const expectedKey = process.env.ADMIN_KEY;
+    if (!expectedKey || adminKey !== expectedKey) {
         return res.status(403).json({ error: '无权限' });
     }
     const { code } = req.body;
