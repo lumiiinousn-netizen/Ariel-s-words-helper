@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>邀请码测试页</title>
+</head>
+<body>
+    <h3>邀请码：WELCOME-2025</h3>
+    <button onclick="testVerify()">点击测试验证</button>
+    <pre id="result"></pre>
+    <script>
+        async function testVerify() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerText = '正在验证...';
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: 'WELCOME-2025' })
+                });
+                const data = await response.json();
+                resultDiv.innerText = `HTTP 状态码: ${response.status}\n\n响应内容:\n${JSON.stringify(data, null, 2)}`;
+                
+                if (response.ok && data.success) {
+                    localStorage.setItem('invite_verified', 'true');
+                    resultDiv.innerText += '\n\n✅ 验证成功，localStorage 已设置！';
+                } else {
+                    resultDiv.innerText += '\n\n❌ 验证失败。';
+                }
+            } catch (error) {
+                resultDiv.innerText = `请求出错: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
