@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 静态文件托管（前端页面）
+// 静态文件托管（可选，Vercel 会自动处理静态文件，但这里也可以保留）
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 app.use(express.static(path.join(__dirname, '..')));
 
@@ -31,7 +31,9 @@ function generateCode() {
     return code;
 }
 
-// 验证邀请码
+// ========== API 路由 ==========
+
+// 1. 验证邀请码（一次性）
 app.post('/api/verify', async (req, res) => {
     const { code } = req.body;
     if (!code) return res.status(400).json({ error: '邀请码不能为空' });
@@ -49,7 +51,7 @@ app.post('/api/verify', async (req, res) => {
     res.json({ success: true });
 });
 
-// 生成邀请码
+// 2. 生成新邀请码（需要管理员密钥）
 app.post('/api/generate', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
     if (adminKey !== process.env.ADMIN_KEY) {
@@ -74,7 +76,7 @@ app.post('/api/generate', async (req, res) => {
     res.json({ codes });
 });
 
-// 获取邀请码列表
+// 3. 获取邀请码列表（管理员）
 app.get('/api/list', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
     if (adminKey !== process.env.ADMIN_KEY) {
@@ -93,7 +95,7 @@ app.get('/api/list', async (req, res) => {
     res.json({ valid: valid || [], used: used || [] });
 });
 
-// 删除邀请码
+// 4. 删除有效邀请码（管理员）
 app.delete('/api/delete', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
     if (adminKey !== process.env.ADMIN_KEY) {
@@ -109,5 +111,5 @@ app.delete('/api/delete', async (req, res) => {
     res.json({ success: true });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// 注意：Vercel 不需要 app.listen，直接导出 app
+export default app;
