@@ -58,13 +58,13 @@ async function fetchTranslation(word) {
     if (!word) return null;
     const apis = [
         async () => {
-            const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|zh`, { signal: AbortSignal.timeout(5000) });
+            const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|zh`, { signal: AbortSignal.timeout(8000) });
             const d = await r.json();
             if (d?.responseData?.translatedText) return d.responseData.translatedText.replace(/&#39;/g,"'").replace(/&quot;/g,'"');
             throw new Error();
         },
         async () => {
-            const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh&dt=t&q=${encodeURIComponent(word)}`, { signal: AbortSignal.timeout(5000) });
+            const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh&dt=t&q=${encodeURIComponent(word)}`, { signal: AbortSignal.timeout(8000) });
             const d = await r.json();
             if (d?.[0]?.[0]?.[0]) return d[0][0][0];
             throw new Error();
@@ -181,7 +181,7 @@ function renderUnderstanding() {
     const words = wordBank.filter(w => w.mode === 'meaning');
     container.innerHTML = '';
     if (!words.length) {
-        container.innerHTML = '<div class="empty-state">✨ 暂无了解词库单词，点击上方添加</div>';
+        container.innerHTML = '<div class="empty-state">✨ 暂无了解词库单词，点击右上角添加</div>';
         return;
     }
     words.forEach(w => {
@@ -192,7 +192,7 @@ function renderUnderstanding() {
                 <div class="word-english">${escapeHtml(w.english)}<button class="icon-small play-word-btn">🔊</button></div>
                 <div class="word-chinese">${escapeHtml(w.chinese)}</div>
                 ${w.example ? `<div class="example-box">📖 ${escapeHtml(w.example)}</div>` : ''}
-                <div class="word-meta"><span class="badge">👁️ 了解</span>${w.pos ? `<span class="badge">${escapeHtml(w.pos)}</span>` : ''}</div>
+                <div class="word-meta"><span class="badge">👁️ 理解</span>${w.pos ? `<span class="badge">${escapeHtml(w.pos)}</span>` : ''}</div>
             </div>
             <div class="word-actions"><button class="icon-small delete-btn">🗑️</button></div>
         `;
@@ -215,7 +215,7 @@ function renderSpelling() {
     const words = wordBank.filter(w => w.mode === 'spell');
     container.innerHTML = '';
     if (!words.length) {
-        container.innerHTML = '<div class="empty-state">✨ 暂无默写单词，点击上方添加</div>';
+        container.innerHTML = '<div class="empty-state">✨ 暂无默写单词，点击右上角添加</div>';
         return;
     }
     words.forEach(w => {
@@ -268,8 +268,10 @@ function renderSpelling() {
     });
 }
 
-// ========== 添加单词表单 ==========
-function showAddUnderstandingForm() { document.getElementById('add-understanding-form').classList.remove('hidden'); }
+// ========== 添加单词表单（修复版，增加日志） ==========
+function showAddUnderstandingForm() { 
+    document.getElementById('add-understanding-form').classList.remove('hidden'); 
+}
 function hideAddUnderstandingForm() {
     document.getElementById('add-understanding-form').classList.add('hidden');
     document.getElementById('new-uci').value = '';
@@ -278,6 +280,7 @@ function hideAddUnderstandingForm() {
     document.getElementById('temp-ex').value = '';
 }
 async function autoFillUnderstanding() {
+    console.log('autoFillUnderstanding called');
     const eng = document.getElementById('new-ueng');
     const word = eng.value.trim();
     if (!word) { alert("请先输入英文单词"); eng.focus(); return; }
@@ -309,6 +312,7 @@ async function autoFillUnderstanding() {
     chiInput.placeholder = "中文释义";
 }
 function addUnderstandingWord() {
+    console.log('addUnderstandingWord called');
     const pos = document.getElementById('new-u-pos').value.trim();
     const ch = document.getElementById('new-uci').value.trim();
     const en = document.getElementById('new-ueng').value.trim();
@@ -331,9 +335,12 @@ function addUnderstandingWord() {
     hideAddUnderstandingForm();
     renderUnderstanding();
     updateSpellList();
+    checkAchievements(); // 触发成就检查
 }
 
-function showAddSpellingForm() { document.getElementById('add-spelling-form').classList.remove('hidden'); }
+function showAddSpellingForm() { 
+    document.getElementById('add-spelling-form').classList.remove('hidden'); 
+}
 function hideAddSpellingForm() {
     document.getElementById('add-spelling-form').classList.add('hidden');
     document.getElementById('new-sci').value = '';
@@ -341,6 +348,7 @@ function hideAddSpellingForm() {
     document.getElementById('temp-ex').value = '';
 }
 async function autoFillSpelling() {
+    console.log('autoFillSpelling called');
     const eng = document.getElementById('new-seng');
     const word = eng.value.trim();
     if (!word) { alert("请先输入英文单词"); eng.focus(); return; }
@@ -359,6 +367,7 @@ async function autoFillSpelling() {
     chiInput.placeholder = "中文释义";
 }
 function addSpellingWord() {
+    console.log('addSpellingWord called');
     const ch = document.getElementById('new-sci').value.trim();
     const en = document.getElementById('new-seng').value.trim();
     const ex = document.getElementById('temp-ex').value.trim();
@@ -380,6 +389,7 @@ function addSpellingWord() {
     hideAddSpellingForm();
     renderSpelling();
     updateSpellList();
+    checkAchievements();
 }
 
 // ========== Excel 导入 ==========
@@ -457,6 +467,7 @@ async function submitAnswer(word) {
     if (!isCorrect) word.wrongCount = (word.wrongCount || 0) + 1;
     updateReview(word, isCorrect);
     saveData();
+    checkAchievements();
     const fb = document.getElementById('quiz-feedback');
     fb.innerHTML = isCorrect ? '✅ 正确！' : `❌ 错误！正确答案: ${word.english}`;
     fb.style.color = isCorrect ? 'green' : '#b91c1c';
@@ -543,7 +554,7 @@ function renderProfile() {
                 <h3>📊 学习统计</h3>
                 <div><b>${wordBank.length}</b> 总词条</div>
                 <div><b>${wordBank.filter(w => w.mode === 'spell').length}</b> 默写词</div>
-                <div><b>${wordBank.filter(w => w.mode === 'meaning').length}</b> 了解词</div>
+                <div><b>${wordBank.filter(w => w.mode === 'meaning').length}</b> 理解词</div>
             </div>
             <div class="info-note">
                 <p>💡 提示：导出记忆会下载JSON文件；导入记忆将覆盖当前数据。</p>
@@ -563,7 +574,6 @@ function renderProfile() {
             };
             reader.readAsDataURL(file);
         } else alert("请选择图片文件");
-        e.target.value = '';
     };
     document.getElementById('save-profile-btn').onclick = () => {
         const nick = document.getElementById('nickname-input').value.trim();
@@ -603,7 +613,6 @@ function renderProfile() {
             };
             reader.readAsText(file);
         }
-        e.target.value = '';
     };
 }
 
@@ -693,9 +702,9 @@ function switchTab(tab) {
     const main = document.getElementById('main-view');
     if (tab === 'understanding') {
         main.innerHTML = `
-            <div class="section-header"><h2>了解词库</h2><button id="add-understanding-btn" class="icon-btn">➕ 新单词</button></div>
+            <div class="section-header"><h2>理解词库</h2><button id="add-understanding-btn" class="icon-btn">➕ 新单词</button></div>
             <div id="add-understanding-form" class="add-word-panel hidden">
-                <h3>添加新单词（了解即可）</h3>
+                <h3>添加新单词（理解即可）</h3>
                 <div class="form-row">
                     <input type="text" id="new-u-pos" placeholder="词性" autocomplete="off" style="width:100px;">
                     <input type="text" id="new-uci" placeholder="中文释义" autocomplete="off">
