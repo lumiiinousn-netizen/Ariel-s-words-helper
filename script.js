@@ -4,11 +4,11 @@ let currentTab = 'understanding';
 let currentGroup = 'all';
 let wrongPriority = true;
 let useEbbinghaus = true;
-let currentAccent = 'en-GB';        // 'en-GB' 英音, 'en-US' 美音
+let currentAccent = 'en-GB';
 let currentQuizIndex = 0;
 let spellWordList = [];
 let listeners = [];
-let speechReady = false;             // 是否已激活语音权限
+let speechAuthorized = false;      // 是否已获得用户授权
 let activeUtterance = null;
 
 function notifyState() { listeners.forEach(fn => fn()); }
@@ -29,19 +29,61 @@ function formatReviewDate(ts) {
     return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// ========== 语音合成（纯浏览器内置，不依赖网络）==========
-function getBestVoice(lang) {
-    const voices = window.speechSynthesis.getVoices();
-    // 优先选择 Google / Microsoft / Natural 等高自然度语音
-    let preferred = voices.find(v => v.lang === lang && (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Natural') || v.name.includes('Female')));
-    if (preferred) return preferred;
-    return voices.find(v => v.lang === lang) || voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+// ========== 语音授权管理 ==========
+function showSpeechPermissionDialog() {
+    // 如果已经授权，不再显示
+    if (speechAuthorized) return;
+    // 创建遮罩层
+    const overlay = document.createElement('div');
+    overlay.id = 'speech-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(0,0,0,0.8)';
+    overlay.style.zIndex = '10000';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.flexDirection = 'column';
+    overlay.style.fontFamily = 'system-ui, sans-serif';
+    
+    const dialog = document.createElement('div');
+    dialog.style.backgroundColor = 'white';
+    dialog.style.borderRadius = '2rem';
+    dialog.style.padding = '2rem';
+    dialog.style.maxWidth = '90%';
+    dialog.style.width = '320px';
+    dialog.style.textAlign = 'center';
+    dialog.style.boxShadow = '0 20px 35px rgba(0,0,0,0.3)';
+    dialog.innerHTML = `
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🎤</div>
+        <h3 style="margin-bottom: 1rem;">激活语音权限</h3>
+        <p style="margin-bottom: 1.5rem; color: #475569;">浏览器需要您点击下方按钮后，才能播放单词发音。</p>
+        <button id="allow-speech-btn" style="background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 1rem; cursor: pointer;">🎧 激活语音</button>
+        <p style="margin-top: 1rem; font-size: 0.75rem; color: #94a3b8;">仅首次需要，之后自动发音</p>
+    `;
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    document.getElementById('allow-speech-btn').onclick = () => {
+        // 尝试播放一个初始化语音片段以获取权限
+        const testMsg = new SpeechSynthesisUtterance(' ');
+        testMsg.lang = 'en-US';
+        testMsg.onend = () => {
+            speechAuthorized = true;
+            overlay.remove();
+            alert('✅ 语音已激活！现在可以点击单词旁的🔊按钮听发音了。');
+        };
+        window.speechSynthesis.speak(testMsg);
+    };
 }
 
-// 实际发音函数（需要在用户手势后调用）
+// 核心发音函数（仅在授权后调用）
 function _speakWord(word) {
-    if (!speechReady) {
-        alert('请先点击页面上的“🎤 激活语音”按钮，允许音频播放');
+    if (!speechAuthorized) {
+        showSpeechPermissionDialog();
         return;
     }
     if (activeUtterance) {
@@ -52,64 +94,34 @@ function _speakWord(word) {
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
     utterance.volume = 1;
-    const voice = getBestVoice(currentAccent);
-    if (voice) utterance.voice = voice;
+    
+    // 选择最佳语音
+    const voices = window.speechSynthesis.getVoices();
+    let bestVoice = null;
+    if (voices.length) {
+        bestVoice = voices.find(v => v.lang === currentAccent && (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Natural')));
+        if (!bestVoice) bestVoice = voices.find(v => v.lang === currentAccent);
+    }
+    if (bestVoice) utterance.voice = bestVoice;
     activeUtterance = utterance;
     window.speechSynthesis.speak(utterance);
 }
 
-// 对外暴露的发音函数（会检查语音权限）
+// 对外暴露的发音函数（如果未授权，显示授权弹窗；否则直接发音）
 function speakEnglishWord(word) {
     if (!word) return;
     if (!window.speechSynthesis) {
-        alert('您的浏览器不支持语音合成');
+        alert('您的浏览器不支持语音合成，请更换 Chrome 或 Edge 重试。');
         return;
     }
-    if (!speechReady) {
-        alert('语音未激活，请点击页面上的“🎤 激活语音”按钮，然后再次点击发音');
+    if (!speechAuthorized) {
+        showSpeechPermissionDialog();
         return;
     }
     _speakWord(word);
 }
 
-// 激活语音权限（必须由用户点击触发）
-function activateSpeech() {
-    if (speechReady) return;
-    // 播放一个静音片段来获取权限
-    const utterance = new SpeechSynthesisUtterance('');
-    utterance.onend = () => {
-        speechReady = true;
-        alert('语音已激活，现在可以正常发音啦！');
-    };
-    window.speechSynthesis.speak(utterance);
-}
-
-// 在页面中添加激活按钮（如果不存在）
-function ensureActivateButton() {
-    if (document.getElementById('speechActivateBtn')) return;
-    const btn = document.createElement('button');
-    btn.id = 'speechActivateBtn';
-    btn.textContent = '🎤 激活语音';
-    btn.style.position = 'fixed';
-    btn.style.bottom = '80px';
-    btn.style.right = '20px';
-    btn.style.zIndex = '9999';
-    btn.style.backgroundColor = '#3b82f6';
-    btn.style.color = 'white';
-    btn.style.border = 'none';
-    btn.style.borderRadius = '40px';
-    btn.style.padding = '8px 16px';
-    btn.style.fontSize = '14px';
-    btn.style.cursor = 'pointer';
-    btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-    btn.onclick = () => {
-        activateSpeech();
-        btn.style.display = 'none';
-    };
-    document.body.appendChild(btn);
-}
-
-// 切换语音按钮绑定
+// 切换英音/美音
 function bindVoiceButtons() {
     const enUsBtn = document.getElementById('voiceEnUs');
     const enUkBtn = document.getElementById('voiceEnUk');
@@ -125,7 +137,7 @@ function setActiveVoice(accent) {
     }
 }
 
-// ========== 加强版自动翻译（多备用接口，返回可靠释义） ==========
+// ========== 加强版自动翻译 ==========
 async function fetchTranslation(word) {
     if (!word) return null;
     try {
@@ -886,7 +898,6 @@ async function init() {
     updateSpellList();
     switchTab('understanding');
     checkAchievements();
-    // 添加激活语音按钮（确保在页面加载后出现）
-    ensureActivateButton();
+    // 注意：不自动显示授权弹窗，只在用户首次点击发音按钮时触发
 }
 init();
