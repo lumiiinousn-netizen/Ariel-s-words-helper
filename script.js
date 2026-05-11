@@ -105,7 +105,7 @@ function setActiveVoice(accent) {
     }
 }
 
-// ========== 自动翻译等（保持不变）==========
+// ========== 自动翻译等 ==========
 async function fetchTranslation(word) {
     if (!word) return null;
     try {
@@ -175,7 +175,9 @@ function loadData() {
             lastReviewDate: w.lastReviewDate || null,
             nextTime: w.nextTime || null,
             attempts: w.attempts || 0,
-            wrongCount: w.wrongCount || 0
+            wrongCount: w.wrongCount || 0,
+            // === 新增错词记录 ===
+            wrongAttempts: w.wrongAttempts || []   // 存储每次拼错时的错误输入字符串
         }));
     } else {
         wordBank = [];
@@ -235,7 +237,68 @@ function updateSpellList() {
     notifyState();
 }
 
-// ========== 词库渲染（理解词库 + 默写词库）==========
+// ========== 单词卡弹窗（显示错词记录）==========
+function showWordCard(word) {
+    const acc = getAccuracy(word);
+    const percent = word.attempts ? Math.round(acc * 100) : 100;
+    const nextReview = word.nextTime ? formatReviewDate(word.nextTime) : '已完成所有周期';
+    
+    // 统计错误拼写及其出现次数
+    const errorCounts = {};
+    if (word.wrongAttempts && word.wrongAttempts.length) {
+        word.wrongAttempts.forEach(err => {
+            errorCounts[err] = (errorCounts[err] || 0) + 1;
+        });
+    }
+    const errorListHtml = Object.keys(errorCounts).length === 0 
+        ? '<p style="color:#6c757d;">暂无错误记录，很棒！</p>'
+        : '<ul style="margin:0; padding-left:1.5rem;">' + 
+          Object.entries(errorCounts).map(([err, cnt]) => `<li>“${escapeHtml(err)}” (${cnt}次)</li>`).join('') + 
+          '</ul>';
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:20000; display:flex; align-items:center; justify-content:center;';
+    const card = document.createElement('div');
+    card.style.cssText = 'background:white; border-radius:2rem; max-width:90%; width:400px; max-height:80%; overflow:auto; padding:1.5rem; box-shadow:0 20px 35px rgba(0,0,0,0.3); font-family:system-ui;';
+    card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h2 style="margin:0;">📖 ${escapeHtml(word.english)}</h2>
+            <button id="close-card-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <div style="margin-bottom:1rem;">
+            <p><strong>释义：</strong> ${escapeHtml(word.chinese)}</p>
+            ${word.example ? `<p><strong>例句：</strong> ${escapeHtml(word.example)}</p>` : ''}
+            ${word.mnemonic ? `<p><strong>口诀：</strong> ${escapeHtml(word.mnemonic)}</p>` : ''}
+        </div>
+        <hr>
+        <h3>📊 掌握情况</h3>
+        <p>✅ 正确率：${percent}% (${word.attempts || 0}次尝试)</p>
+        <p>❌ 错误次数：${word.wrongCount || 0}次</p>
+        <p>📅 下次复习：${nextReview}</p>
+        <hr>
+        <h3>📝 历史错词记录</h3>
+        ${errorListHtml}
+        <div style="margin-top:1rem; text-align:center;">
+            <button id="clear-errors-btn" style="background:#fee2e2; color:#b91c1c; border:none; padding:0.4rem 1rem; border-radius:2rem; cursor:pointer;">🗑️ 清空本词错误记录</button>
+        </div>
+    `;
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+    
+    card.querySelector('#close-card-btn').onclick = () => modal.remove();
+    card.querySelector('#clear-errors-btn').onclick = () => {
+        if (confirm(`清除单词“${word.english}”的所有错误记录？`)) {
+            word.wrongAttempts = [];
+            word.wrongCount = 0;
+            saveData();
+            modal.remove();
+            renderSpelling();  // 刷新列表
+        }
+    };
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+}
+
+// ========== 词库渲染 ==========
 function renderUnderstanding() {
     const container = document.getElementById('understanding-words-container');
     if (!container) return;
@@ -300,11 +363,13 @@ function renderSpelling() {
         const due = isDue(w);
         const nextReview = w.nextTime ? formatReviewDate(w.nextTime) : '已完成';
         const mnemonicHtml = w.mnemonic ? `<div class="example-box">🧠 口诀: ${escapeHtml(w.mnemonic)}</div>` : '';
+        // 增加点击卡片主体查看详情
         const card = document.createElement('div');
         card.className = 'word-card';
+        card.style.cursor = 'pointer';
         card.innerHTML = `
             <div class="word-info">
-                <div class="word-english">${escapeHtml(w.english)}<button class="icon-small play-word-btn">🔊</button></div>
+                <div class="word-english">${escapeHtml(w.english)}<button class="icon-small play-word-btn" style="cursor:pointer;">🔊</button></div>
                 <div class="word-chinese">${escapeHtml(w.chinese)}</div>
                 ${w.example ? `<div class="example-box">📖 ${escapeHtml(w.example)}</div>` : ''}
                 ${mnemonicHtml}
@@ -322,8 +387,15 @@ function renderSpelling() {
             </div>
         `;
         container.appendChild(card);
-        card.querySelector('.play-word-btn').onclick = () => speakEnglishWord(w.english);
-        card.querySelector('.edit-mnemonic-btn').onclick = () => {
+        // 点击整个卡片（除了按钮区域）显示详情卡片
+        card.querySelector('.word-info').onclick = (e) => {
+            if (e.target.tagName !== 'BUTTON') {
+                showWordCard(w);
+            }
+        };
+        card.querySelector('.play-word-btn').onclick = (e) => { e.stopPropagation(); speakEnglishWord(w.english); };
+        card.querySelector('.edit-mnemonic-btn').onclick = (e) => {
+            e.stopPropagation();
             const newMnemonic = prompt('编辑记忆口诀（帮助拼写联想）:', w.mnemonic || '');
             if (newMnemonic !== null) {
                 w.mnemonic = newMnemonic.trim();
@@ -331,15 +403,23 @@ function renderSpelling() {
                 renderSpelling();
             }
         };
-        card.querySelector('.wrong-inc-btn').onclick = () => {
+        card.querySelector('.wrong-inc-btn').onclick = (e) => {
+            e.stopPropagation();
             w.wrongCount = (w.wrongCount || 0) + 1;
             w.attempts = (w.attempts || 0) + 1;
+            // 手动记录一次错误拼写（模拟输入）
+            const fakeWrong = prompt('记录错误拼写（例如拼错的单词）:', w.english + '?');
+            if (fakeWrong && fakeWrong.trim()) {
+                w.wrongAttempts = w.wrongAttempts || [];
+                w.wrongAttempts.push(fakeWrong.trim());
+            }
             updateReview(w, false);
             saveData();
             renderSpelling();
             updateSpellList();
         };
-        card.querySelector('.delete-btn').onclick = () => {
+        card.querySelector('.delete-btn').onclick = (e) => {
+            e.stopPropagation();
             if (confirm(`删除单词“${w.english}”？`)) {
                 wordBank = wordBank.filter(x => x.id !== w.id);
                 saveData();
@@ -403,7 +483,8 @@ function addUnderstandingWord() {
         reviewCount: 0,
         createdDate: getTodayStr(),
         attempts: 0,
-        wrongCount: 0
+        wrongCount: 0,
+        wrongAttempts: []      // 新增
     };
     wordBank.push(newWord);
     saveData();
@@ -451,6 +532,7 @@ function addSpellingWord() {
         nextTime: Date.now(),
         attempts: 0,
         wrongCount: 0,
+        wrongAttempts: [],     // 新增
         createdDate: getTodayStr()
     };
     wordBank.push(newWord);
@@ -492,6 +574,7 @@ async function importExcelTo(target) {
                 reviewStage: 0,
                 attempts: 0,
                 wrongCount: 0,
+                wrongAttempts: [],
                 createdDate: getTodayStr()
             };
             if (target === 'spell') newWord.nextTime = Date.now();
@@ -507,7 +590,7 @@ async function importExcelTo(target) {
     input.click();
 }
 
-// ========== 听写练习（纯手动切换）==========
+// ========== 听写练习（纯手动切换，并记录错误拼写）==========
 let quizStartTime = 0;
 function startNewQuiz() {
     const container = document.getElementById('quiz-card');
@@ -542,7 +625,12 @@ async function submitAnswer(word) {
     const isCorrect = (userAnswer === correct);
     const elapsed = (Date.now() - quizStartTime) / 1000;
     word.attempts = (word.attempts || 0) + 1;
-    if (!isCorrect) word.wrongCount = (word.wrongCount || 0) + 1;
+    if (!isCorrect) {
+        word.wrongCount = (word.wrongCount || 0) + 1;
+        // === 记录错误拼写（保留原始输入）===
+        if (!word.wrongAttempts) word.wrongAttempts = [];
+        word.wrongAttempts.push(userAnswer);
+    }
     updateReview(word, isCorrect);
     saveData();
     checkAchievements();
@@ -571,8 +659,7 @@ async function submitAnswer(word) {
         alert('记忆口诀已保存');
         renderSpelling();
     };
-    // ⚠️ 重要：移除了自动跳转到下一个单词的 setTimeout 代码
-    // 现在用户必须手动点击“下一个单词”按钮才能继续
+    // 不自动跳转，用户需手动点击下一个单词
 }
 
 function updateQuizNav() {
