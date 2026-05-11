@@ -8,7 +8,7 @@ let currentAccent = 'en-GB';
 let currentQuizIndex = 0;
 let spellWordList = [];
 let listeners = [];
-let speechAuthorized = false;      // 是否已获得用户授权
+let speechAuthorized = false;
 let activeUtterance = null;
 
 function notifyState() { listeners.forEach(fn => fn()); }
@@ -29,46 +29,24 @@ function formatReviewDate(ts) {
     return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// ========== 语音授权管理 ==========
+// ========== 语音授权与发音 ==========
 function showSpeechPermissionDialog() {
-    // 如果已经授权，不再显示
     if (speechAuthorized) return;
-    // 创建遮罩层
     const overlay = document.createElement('div');
     overlay.id = 'speech-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.backgroundColor = 'rgba(0,0,0,0.8)';
-    overlay.style.zIndex = '10000';
-    overlay.style.display = 'flex';
-    overlay.style.alignItems = 'center';
-    overlay.style.justifyContent = 'center';
-    overlay.style.flexDirection = 'column';
-    overlay.style.fontFamily = 'system-ui, sans-serif';
-    
+    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column; font-family:system-ui, sans-serif;';
     const dialog = document.createElement('div');
-    dialog.style.backgroundColor = 'white';
-    dialog.style.borderRadius = '2rem';
-    dialog.style.padding = '2rem';
-    dialog.style.maxWidth = '90%';
-    dialog.style.width = '320px';
-    dialog.style.textAlign = 'center';
-    dialog.style.boxShadow = '0 20px 35px rgba(0,0,0,0.3)';
+    dialog.style.cssText = 'background:white; border-radius:2rem; padding:2rem; max-width:90%; width:320px; text-align:center; box-shadow:0 20px 35px rgba(0,0,0,0.3);';
     dialog.innerHTML = `
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🎤</div>
-        <h3 style="margin-bottom: 1rem;">激活语音权限</h3>
-        <p style="margin-bottom: 1.5rem; color: #475569;">浏览器需要您点击下方按钮后，才能播放单词发音。</p>
-        <button id="allow-speech-btn" style="background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 2rem; font-size: 1rem; cursor: pointer;">🎧 激活语音</button>
-        <p style="margin-top: 1rem; font-size: 0.75rem; color: #94a3b8;">仅首次需要，之后自动发音</p>
+        <div style="font-size:3rem; margin-bottom:1rem;">🎤</div>
+        <h3 style="margin-bottom:1rem;">激活语音权限</h3>
+        <p style="margin-bottom:1.5rem; color:#475569;">浏览器需要您点击下方按钮后，才能播放单词发音。</p>
+        <button id="allow-speech-btn" style="background:#3b82f6; color:white; border:none; padding:0.75rem 1.5rem; border-radius:2rem; font-size:1rem; cursor:pointer;">🎧 激活语音</button>
+        <p style="margin-top:1rem; font-size:0.75rem; color:#94a3b8;">仅首次需要，之后自动发音</p>
     `;
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
-    
     document.getElementById('allow-speech-btn').onclick = () => {
-        // 尝试播放一个初始化语音片段以获取权限
         const testMsg = new SpeechSynthesisUtterance(' ');
         testMsg.lang = 'en-US';
         testMsg.onend = () => {
@@ -80,34 +58,25 @@ function showSpeechPermissionDialog() {
     };
 }
 
-// 核心发音函数（仅在授权后调用）
 function _speakWord(word) {
     if (!speechAuthorized) {
         showSpeechPermissionDialog();
         return;
     }
-    if (activeUtterance) {
-        window.speechSynthesis.cancel();
-    }
+    if (activeUtterance) window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(word);
     utterance.lang = currentAccent;
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
     utterance.volume = 1;
-    
-    // 选择最佳语音
     const voices = window.speechSynthesis.getVoices();
-    let bestVoice = null;
-    if (voices.length) {
-        bestVoice = voices.find(v => v.lang === currentAccent && (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Natural')));
-        if (!bestVoice) bestVoice = voices.find(v => v.lang === currentAccent);
-    }
+    let bestVoice = voices.find(v => v.lang === currentAccent && (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Natural')));
+    if (!bestVoice) bestVoice = voices.find(v => v.lang === currentAccent);
     if (bestVoice) utterance.voice = bestVoice;
     activeUtterance = utterance;
     window.speechSynthesis.speak(utterance);
 }
 
-// 对外暴露的发音函数（如果未授权，显示授权弹窗；否则直接发音）
 function speakEnglishWord(word) {
     if (!word) return;
     if (!window.speechSynthesis) {
@@ -121,7 +90,6 @@ function speakEnglishWord(word) {
     _speakWord(word);
 }
 
-// 切换英音/美音
 function bindVoiceButtons() {
     const enUsBtn = document.getElementById('voiceEnUs');
     const enUkBtn = document.getElementById('voiceEnUk');
@@ -137,7 +105,7 @@ function setActiveVoice(accent) {
     }
 }
 
-// ========== 加强版自动翻译 ==========
+// ========== 自动翻译等（保持不变）==========
 async function fetchTranslation(word) {
     if (!word) return null;
     try {
@@ -148,12 +116,12 @@ async function fetchTranslation(word) {
             trans = trans.replace(/^(n\.|adj\.|v\.|adv\.|prep\.|conj\.|pron\.)\s+/i, '');
             if (trans && trans.length < 50) return trans;
         }
-    } catch(e) { /* 继续 */ }
+    } catch(e) { }
     try {
         const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh&dt=t&q=${encodeURIComponent(word)}`, { signal: AbortSignal.timeout(8000) });
         const d = await r.json();
         if (d?.[0]?.[0]?.[0]) return d[0][0][0];
-    } catch(e) {}
+    } catch(e) { }
     return null;
 }
 function detectPos(word) {
@@ -267,7 +235,7 @@ function updateSpellList() {
     notifyState();
 }
 
-// ========== 词库渲染 ==========
+// ========== 词库渲染（理解词库 + 默写词库）==========
 function renderUnderstanding() {
     const container = document.getElementById('understanding-words-container');
     if (!container) return;
@@ -383,7 +351,7 @@ function renderSpelling() {
     });
 }
 
-// ========== 添加单词 ==========
+// ========== 添加单词（理解词库 + 默写词库）==========
 let tempExample = '';
 async function autoFillUnderstanding() {
     const engInput = document.getElementById('new-ueng');
@@ -539,7 +507,7 @@ async function importExcelTo(target) {
     input.click();
 }
 
-// ========== 听写练习 ==========
+// ========== 听写练习（纯手动切换）==========
 let quizStartTime = 0;
 function startNewQuiz() {
     const container = document.getElementById('quiz-card');
@@ -566,6 +534,7 @@ function startNewQuiz() {
     document.getElementById('quiz-answer-input').focus();
     updateQuizNav();
 }
+
 async function submitAnswer(word) {
     const input = document.getElementById('quiz-answer-input');
     const userAnswer = input.value.trim().toLowerCase();
@@ -602,26 +571,33 @@ async function submitAnswer(word) {
         alert('记忆口诀已保存');
         renderSpelling();
     };
-    setTimeout(() => {
-        if (currentQuizIndex + 1 < spellWordList.length) {
-            currentQuizIndex++;
-            startNewQuiz();
-        } else if (currentQuizIndex + 1 === spellWordList.length) {
-            document.getElementById('quiz-card').innerHTML = '<div class="empty-state">🎉 恭喜！当前分组所有单词已完成复习！</div>';
-            updateQuizNav();
-        }
-    }, 2000);
+    // ⚠️ 重要：移除了自动跳转到下一个单词的 setTimeout 代码
+    // 现在用户必须手动点击“下一个单词”按钮才能继续
 }
+
 function updateQuizNav() {
     const total = spellWordList.length;
     const counter = document.getElementById('word-counter');
     if (counter) counter.textContent = total ? `${currentQuizIndex+1}/${total}` : `0/0`;
     const prev = document.getElementById('prev-word-btn');
     const next = document.getElementById('next-word-btn');
-    if (prev && next) { prev.disabled = total===0 || currentQuizIndex===0; next.disabled = total===0 || currentQuizIndex===total-1; }
+    if (prev && next) {
+        prev.disabled = total === 0 || currentQuizIndex === 0;
+        next.disabled = total === 0 || currentQuizIndex === total - 1;
+    }
 }
-function prevWord() { if (currentQuizIndex > 0) { currentQuizIndex--; startNewQuiz(); } }
-function nextWord() { if (currentQuizIndex < spellWordList.length-1) { currentQuizIndex++; startNewQuiz(); } }
+function prevWord() {
+    if (currentQuizIndex > 0 && spellWordList.length > 0) {
+        currentQuizIndex--;
+        startNewQuiz();
+    }
+}
+function nextWord() {
+    if (currentQuizIndex < spellWordList.length - 1 && spellWordList.length > 0) {
+        currentQuizIndex++;
+        startNewQuiz();
+    }
+}
 function renderQuizSettings() {
     document.getElementById('refresh-quiz-list').onclick = () => { updateSpellList(); startNewQuiz(); };
     document.getElementById('priority-wrong-checkbox').onchange = e => { wrongPriority = e.target.checked; updateSpellList(); startNewQuiz(); };
@@ -898,6 +874,5 @@ async function init() {
     updateSpellList();
     switchTab('understanding');
     checkAchievements();
-    // 注意：不自动显示授权弹窗，只在用户首次点击发音按钮时触发
 }
 init();
