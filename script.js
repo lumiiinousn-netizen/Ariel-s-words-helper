@@ -27,19 +27,40 @@ function formatReviewDate(ts) {
     return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// ========== 真人发音（有道词典接口，非 AI）==========
-function speakEnglishWord(word) {
+// ========== 免费真人发音（有道 + 金山词霸双保险） ==========
+async function speakEnglishWord(word) {
     if (!word) return;
-    // 有道发音模板：type=1 英音，type=2 美音
-    const type = (currentAccent === 'en-GB') ? 1 : 2;
-    const url = `https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}&type=${type}`;
-    const audio = new Audio(url);
-    audio.play().catch(err => {
-        console.warn(`有道发音失败 (单词: ${word}):`, err);
-        // 不进行任何 AI 回退，保持纯真人发音请求
-    });
+    const playAudio = async (url) => {
+        return new Promise((resolve, reject) => {
+            const audio = new Audio(url);
+            audio.onerror = () => reject(new Error(`无法加载音频: ${url}`));
+            audio.onended = () => resolve();
+            audio.play().catch(reject);
+        });
+    };
+    
+    const urls = [];
+    if (currentAccent === 'en-GB') {
+        urls.push(`https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}&type=1`);
+        urls.push(`https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}`);
+        urls.push(`http://res.iciba.com/res/amp3/oxford/${encodeURIComponent(word)}.mp3`);
+    } else {
+        urls.push(`https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}&type=2`);
+        urls.push(`https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}`);
+        urls.push(`http://res.iciba.com/res/amp3/1/0/${encodeURIComponent(word)}.mp3`);
+    }
+    
+    for (const url of urls) {
+        try {
+            await playAudio(url);
+            return;
+        } catch (err) {
+            console.warn(`发音失败: ${url}`, err);
+        }
+    }
+    alert(`⚠️ 无法播放单词“${word}”的真人发音，请检查网络连接。\n您可以尝试切换英音/美音后重试。`);
 }
-// 切换语音按钮绑定
+
 function bindVoiceButtons() {
     const enUsBtn = document.getElementById('voiceEnUs');
     const enUkBtn = document.getElementById('voiceEnUk');
@@ -55,10 +76,9 @@ function setActiveVoice(accent) {
     }
 }
 
-// ========== 加强版自动翻译（多备用接口，返回可靠释义） ==========
+// ========== 加强版自动翻译 ==========
 async function fetchTranslation(word) {
     if (!word) return null;
-    // 1. 优先 MyMemory (支持 CORS)
     try {
         const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|zh`, { signal: AbortSignal.timeout(8000) });
         const d = await r.json();
@@ -67,8 +87,7 @@ async function fetchTranslation(word) {
             trans = trans.replace(/^(n\.|adj\.|v\.|adv\.|prep\.|conj\.|pron\.)\s+/i, '');
             if (trans && trans.length < 50) return trans;
         }
-    } catch(e) { /* 继续下一接口 */ }
-    // 2. Google 翻译备用
+    } catch(e) { /* 继续 */ }
     try {
         const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh&dt=t&q=${encodeURIComponent(word)}`, { signal: AbortSignal.timeout(8000) });
         const d = await r.json();
@@ -76,6 +95,7 @@ async function fetchTranslation(word) {
     } catch(e) {}
     return null;
 }
+
 function detectPos(word) {
     const patterns = {
         'tion$|sion$': 'n.', 'ing$': 'v.', 'ly$': 'adv.',
@@ -87,6 +107,7 @@ function detectPos(word) {
     }
     return '';
 }
+
 function isValidSentence(s) {
     if (!s || typeof s !== 'string') return false;
     s = s.trim();
@@ -99,6 +120,7 @@ function isValidSentence(s) {
     if (!/\s/.test(s)) return false;
     return true;
 }
+
 async function fetchOxfordExample(word) {
     try {
         const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
@@ -303,7 +325,7 @@ function renderSpelling() {
     });
 }
 
-// ========== 添加单词（理解词库 + 默写词库） ==========
+// ========== 添加单词 ==========
 let tempExample = '';
 async function autoFillUnderstanding() {
     const engInput = document.getElementById('new-ueng');
