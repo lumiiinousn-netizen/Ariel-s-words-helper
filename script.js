@@ -8,6 +8,8 @@ let currentAccent = 'en-GB';        // 'en-GB' 英音, 'en-US' 美音
 let currentQuizIndex = 0;
 let spellWordList = [];
 let listeners = [];
+let speechReady = false;             // 是否已激活语音权限
+let activeUtterance = null;
 
 function notifyState() { listeners.forEach(fn => fn()); }
 function subscribe(fn) { listeners.push(fn); return () => listeners = listeners.filter(f => f !== fn); }
@@ -27,34 +29,87 @@ function formatReviewDate(ts) {
     return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// ========== 纯 Google TTS 发音（稳定，无回退，无报错）==========
-let currentAudio = null;
-
-async function speakEnglishWord(word) {
-    if (!word) return;
-    // 停止当前播放的音频
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
-    
-    const lang = (currentAccent === 'en-GB') ? 'en-GB' : 'en-US';
-    // 优先使用 translate.google.cn (国内可用)，备用 .com
-    const url = `https://translate.google.cn/translate_tts?ie=UTF-8&q=${encodeURIComponent(word)}&tl=${lang}&client=tw-ob`;
-    
-    const audio = new Audio(url);
-    currentAudio = audio;
-    audio.onerror = (err) => {
-        console.warn('Google TTS 加载失败，尝试备用域名');
-        // 备用：使用 google.com
-        const fallbackUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word)}&tl=${lang}&client=tw-ob`;
-        const fallbackAudio = new Audio(fallbackUrl);
-        currentAudio = fallbackAudio;
-        fallbackAudio.play().catch(e => console.warn('播放失败，请检查网络', e));
-    };
-    audio.play().catch(e => console.warn('播放被阻止，请点击页面任意位置后再试', e));
+// ========== 语音合成（纯浏览器内置，不依赖网络）==========
+function getBestVoice(lang) {
+    const voices = window.speechSynthesis.getVoices();
+    // 优先选择 Google / Microsoft / Natural 等高自然度语音
+    let preferred = voices.find(v => v.lang === lang && (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Natural') || v.name.includes('Female')));
+    if (preferred) return preferred;
+    return voices.find(v => v.lang === lang) || voices.find(v => v.lang.startsWith(lang.split('-')[0]));
 }
 
+// 实际发音函数（需要在用户手势后调用）
+function _speakWord(word) {
+    if (!speechReady) {
+        alert('请先点击页面上的“🎤 激活语音”按钮，允许音频播放');
+        return;
+    }
+    if (activeUtterance) {
+        window.speechSynthesis.cancel();
+    }
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = currentAccent;
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    utterance.volume = 1;
+    const voice = getBestVoice(currentAccent);
+    if (voice) utterance.voice = voice;
+    activeUtterance = utterance;
+    window.speechSynthesis.speak(utterance);
+}
+
+// 对外暴露的发音函数（会检查语音权限）
+function speakEnglishWord(word) {
+    if (!word) return;
+    if (!window.speechSynthesis) {
+        alert('您的浏览器不支持语音合成');
+        return;
+    }
+    if (!speechReady) {
+        alert('语音未激活，请点击页面上的“🎤 激活语音”按钮，然后再次点击发音');
+        return;
+    }
+    _speakWord(word);
+}
+
+// 激活语音权限（必须由用户点击触发）
+function activateSpeech() {
+    if (speechReady) return;
+    // 播放一个静音片段来获取权限
+    const utterance = new SpeechSynthesisUtterance('');
+    utterance.onend = () => {
+        speechReady = true;
+        alert('语音已激活，现在可以正常发音啦！');
+    };
+    window.speechSynthesis.speak(utterance);
+}
+
+// 在页面中添加激活按钮（如果不存在）
+function ensureActivateButton() {
+    if (document.getElementById('speechActivateBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'speechActivateBtn';
+    btn.textContent = '🎤 激活语音';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '80px';
+    btn.style.right = '20px';
+    btn.style.zIndex = '9999';
+    btn.style.backgroundColor = '#3b82f6';
+    btn.style.color = 'white';
+    btn.style.border = 'none';
+    btn.style.borderRadius = '40px';
+    btn.style.padding = '8px 16px';
+    btn.style.fontSize = '14px';
+    btn.style.cursor = 'pointer';
+    btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+    btn.onclick = () => {
+        activateSpeech();
+        btn.style.display = 'none';
+    };
+    document.body.appendChild(btn);
+}
+
+// 切换语音按钮绑定
 function bindVoiceButtons() {
     const enUsBtn = document.getElementById('voiceEnUs');
     const enUkBtn = document.getElementById('voiceEnUk');
@@ -831,5 +886,7 @@ async function init() {
     updateSpellList();
     switchTab('understanding');
     checkAchievements();
+    // 添加激活语音按钮（确保在页面加载后出现）
+    ensureActivateButton();
 }
 init();
