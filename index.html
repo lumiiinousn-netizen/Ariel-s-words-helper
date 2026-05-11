@@ -9,60 +9,71 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div id="app-container" class="app-container">
-        <div id="fixed-notice" style="background: linear-gradient(120deg, #fff0c0, #ffe0a3); color: #b75f00; padding: 12px 10px; text-align: center; font-size: 20px; font-weight: bold; border-bottom: 3px solid #ffb347; margin: 8px 15px; border-radius: 60px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-            🍧 使用前请务必食用 🍧
-        </div>
-        <div id="notice-bar" class="notice-bar hidden">
-            <div class="notice-content" id="notice-content"></div>
-            <button id="close-notice-btn" class="notice-close">✖</button>
-        </div>
-        <header>
-            <h1 id="clickable-title">❄️ Ariel's Words Helper ❄️</h1>
-            <div class="tab-bar">
-                <button class="tab-btn active" data-tab="understanding">📖 了解词库</button>
-                <button class="tab-btn" data-tab="spelling">✍️ 默写词库</button>
-                <button class="tab-btn" data-tab="quiz">🎧 听写练习</button>
-                <button class="tab-btn" data-tab="profile">👤 我的</button>
-                <button class="tab-btn" data-tab="achievements">🏆 成就</button>
-            </div>
-        </header>
-        <main id="main-view" class="content-container"></main>
+<div id="app-container" class="app-container">
+    <!-- 固定公告 -->
+    <div id="fixed-notice" style="background: linear-gradient(120deg, #fff0c0, #ffe0a3); color: #b75f00; padding: 12px 10px; text-align: center; font-size: 20px; font-weight: bold; border-bottom: 3px solid #ffb347; margin: 8px 15px; border-radius: 60px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+         使用前请务必食用🍧！！！
     </div>
-
-    <div id="admin-panel" class="admin-panel" style="display:none;">
-        <h4>🔧 数据管理</h4>
-        <div id="admin-codes-list"></div>
-        <div><button id="reset-storage">重置所有数据</button> <button id="close-admin">关闭</button></div>
+    <!-- 欢迎语（新增） -->
+    <div id="welcome-notice" style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 0.6rem 0.8rem; margin: 0 15px 10px; border-radius: 0.75rem; font-size: 1rem; color: #0369a1; text-align: center;">
+        ✨ 欢迎使用！
     </div>
-
-    <div id="info-icon" onclick="toggleHelp()">🍧</div>
-    <div id="help-modal" class="full-overlay" style="display:none;">
-        <div class="auth-card">
-            <h3>📖 系统功能说明</h3>
-            <p>• 单词库：了解词库/默写词库，支持Excel导入。</p>
-            <p>• 自动翻译 + 牛津例句。</p>
-            <p>• 语音朗读（英音/美音切换）。</p>
-            <p>• 艾宾浩斯复习，听写记录正确率。</p>
-            <p>• 成就系统，导入导出备份。</p>
-            <p style="color:#c7254e;">⚠️ 建议每次使用后导出备份！</p>
-            <button class="btn-primary" onclick="toggleHelp()">关闭</button>
+    <!-- 动态公告栏 -->
+    <div id="notice-bar" class="notice-bar hidden">
+        <div class="notice-content" id="notice-content"></div>
+        <button id="close-notice-btn" class="notice-close">✖</button>
+    </div>
+    <header>
+        <h1 id="clickable-title">❄️ Ariel's Words Helper ❄️</h1>
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="understanding">📖 理解词库</button>
+            <button class="tab-btn" data-tab="spelling">✍️ 默写词库</button>
+            <button class="tab-btn" data-tab="quiz">🎧 听写练习</button>
+            <button class="tab-btn" data-tab="achievements">🏆 成就</button>
+            <button class="tab-btn" data-tab="profile">👤 我的</button>
         </div>
+    </header>
+    <main id="main-view" class="content-container"></main>
+</div>
+
+<div id="admin-panel" class="admin-panel" style="display:none;">
+    <h4>🔧 数据管理</h4>
+    <div id="admin-codes-list"></div>
+    <div><button id="reset-storage">重置所有数据</button> <button id="close-admin">关闭</button></div>
+</div>
+
+<div id="info-icon" onclick="toggleHelp()">🍧</div>
+<div id="help-modal" class="full-overlay" style="display:none;">
+    <div class="auth-card">
+        <h3>📖 系统功能说明</h3>
+        <p>• 单词库：了解词库/默写词库，支持Excel导入。</p>
+         <p>• 理解词库点击词条中的review按钮增加复习次数。</p>
+        <p>• 自动翻译 + 牛津例句。</p>
+        <p>• 语音朗读（英音/美音切换）。</p>
+        <p>• 艾宾浩斯复习法，听写记录正确率。</p>
+        <p>• 成就系统，导入导出备份。</p>
+        <p style="color:#c7254e;">⚠️ 强烈建议每次使用后导出备份！以防后续更新网站导致数据丢失</p>
+         <hr style="margin: 10px 0;">
+        <p style="font-size: 0.85rem; background: #f0f4f8; padding: 8px; border-radius: 8px;">
+            📎 <strong>Excel 导入格式</strong>：第一列英文，第二列中文（无需表头，支持 .xlsx / .xls）
+        </p>
+        <button class="btn-primary" onclick="toggleHelp()">关闭</button>
     </div>
+</div>
 
-    <audio id="tts-audio" style="display:none;"></audio>
-    <input type="file" id="import-file" style="display:none" accept=".json">
-    <input type="file" id="import-excel" style="display:none" accept=".xlsx, .xls">
+<audio id="tts-audio" style="display:none;"></audio>
+<input type="file" id="import-file" style="display:none" accept=".json">
+<input type="file" id="import-excel" style="display:none" accept=".xlsx, .xls">
 
-    <script src="script.js"></script>
-    <script>
-        function toggleHelp() {
-            const m = document.getElementById('help-modal');
-            m.style.display = m.style.display === 'none' ? 'flex' : 'none';
-        }
-        document.getElementById('help-modal')?.addEventListener('click', e => {
-            if (e.target === document.getElementById('help-modal')) toggleHelp();
-        });
-    </script>
+<script src="script.js"></script>
+<script>
+    function toggleHelp() {
+        const m = document.getElementById('help-modal');
+        m.style.display = m.style.display === 'none' ? 'flex' : 'none';
+    }
+    document.getElementById('help-modal')?.addEventListener('click', e => {
+        if (e.target === document.getElementById('help-modal')) toggleHelp();
+    });
+</script>
 </body>
 </html>
