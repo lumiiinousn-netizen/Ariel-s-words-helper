@@ -27,72 +27,34 @@ function formatReviewDate(ts) {
     return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// ========== 自然发音：优先真人（有道），回退高质量合成 ==========
-let currentUtterance = null;
-let bestVoice = null; // 缓存最佳语音
+// ========== 纯 Google TTS 发音（稳定，无回退，无报错）==========
+let currentAudio = null;
 
-// 获取系统中最自然的英文语音（优先 Google / Microsoft Neural）
-function getBestVoiceForLang(lang) {
-    return new Promise((resolve) => {
-        const voices = window.speechSynthesis.getVoices();
-        if (voices.length > 0) {
-            // 优先选择带有 "Google"、"Microsoft"、"Natural" 且语言匹配的语音
-            let selected = voices.find(v => v.lang === lang && (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Natural') || v.name.includes('Female')));
-            if (!selected) selected = voices.find(v => v.lang === lang);
-            if (!selected && lang === 'en-GB') selected = voices.find(v => v.lang.startsWith('en'));
-            resolve(selected || null);
-        } else {
-            window.speechSynthesis.onvoiceschanged = () => {
-                const newVoices = window.speechSynthesis.getVoices();
-                let selected = newVoices.find(v => v.lang === lang && (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Natural')));
-                if (!selected) selected = newVoices.find(v => v.lang === lang);
-                resolve(selected || null);
-            };
-        }
-    });
-}
-
-// 优先尝试有道真人发音，失败则使用高质量合成
 async function speakEnglishWord(word) {
     if (!word) return;
-    // 取消播放中的语音
-    if (currentUtterance) {
-        window.speechSynthesis.cancel();
+    // 停止当前播放的音频
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
     }
-
-    // 1. 尝试有道真人发音（英音type=1，美音type=2）
-    const type = (currentAccent === 'en-GB') ? 1 : 2;
-    const youdaoUrl = `https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}&type=${type}&le=eng`;
-    try {
-        const audio = new Audio(youdaoUrl);
-        audio.onerror = () => { throw new Error('有道发音失败'); };
-        await audio.play();
-        return; // 成功播放真人发音
-    } catch (e) {
-        console.warn('有道真人发音失败，回退到合成语音', e);
-    }
-
-    // 2. 回退到高质量合成语音
-    try {
-        const utterance = new SpeechSynthesisUtterance(word);
-        utterance.lang = currentAccent;
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
-        utterance.volume = 1;
-
-        // 选择最佳语音引擎
-        const voice = await getBestVoiceForLang(currentAccent);
-        if (voice) utterance.voice = voice;
-        
-        currentUtterance = utterance;
-        window.speechSynthesis.speak(utterance);
-    } catch (err) {
-        console.error('合成语音也失败:', err);
-        alert(`无法播放单词“${word}”的发音，请检查系统语音设置。`);
-    }
+    
+    const lang = (currentAccent === 'en-GB') ? 'en-GB' : 'en-US';
+    // 优先使用 translate.google.cn (国内可用)，备用 .com
+    const url = `https://translate.google.cn/translate_tts?ie=UTF-8&q=${encodeURIComponent(word)}&tl=${lang}&client=tw-ob`;
+    
+    const audio = new Audio(url);
+    currentAudio = audio;
+    audio.onerror = (err) => {
+        console.warn('Google TTS 加载失败，尝试备用域名');
+        // 备用：使用 google.com
+        const fallbackUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word)}&tl=${lang}&client=tw-ob`;
+        const fallbackAudio = new Audio(fallbackUrl);
+        currentAudio = fallbackAudio;
+        fallbackAudio.play().catch(e => console.warn('播放失败，请检查网络', e));
+    };
+    audio.play().catch(e => console.warn('播放被阻止，请点击页面任意位置后再试', e));
 }
 
-// 切换语音按钮绑定
 function bindVoiceButtons() {
     const enUsBtn = document.getElementById('voiceEnUs');
     const enUkBtn = document.getElementById('voiceEnUk');
@@ -108,7 +70,7 @@ function setActiveVoice(accent) {
     }
 }
 
-// ========== 加强版自动翻译 ==========
+// ========== 加强版自动翻译（多备用接口，返回可靠释义） ==========
 async function fetchTranslation(word) {
     if (!word) return null;
     try {
