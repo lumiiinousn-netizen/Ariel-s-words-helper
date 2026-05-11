@@ -27,40 +27,42 @@ function formatReviewDate(ts) {
     return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// ========== 免费真人发音（有道 + 金山词霸双保险） ==========
-async function speakEnglishWord(word) {
-    if (!word) return;
-    const playAudio = async (url) => {
-        return new Promise((resolve, reject) => {
-            const audio = new Audio(url);
-            audio.onerror = () => reject(new Error(`无法加载音频: ${url}`));
-            audio.onended = () => resolve();
-            audio.play().catch(reject);
-        });
-    };
-    
-    const urls = [];
-    if (currentAccent === 'en-GB') {
-        urls.push(`https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}&type=1`);
-        urls.push(`https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}`);
-        urls.push(`http://res.iciba.com/res/amp3/oxford/${encodeURIComponent(word)}.mp3`);
-    } else {
-        urls.push(`https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}&type=2`);
-        urls.push(`https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}`);
-        urls.push(`http://res.iciba.com/res/amp3/1/0/${encodeURIComponent(word)}.mp3`);
-    }
-    
-    for (const url of urls) {
-        try {
-            await playAudio(url);
-            return;
-        } catch (err) {
-            console.warn(`发音失败: ${url}`, err);
-        }
-    }
-    alert(`⚠️ 无法播放单词“${word}”的真人发音，请检查网络连接。\n您可以尝试切换英音/美音后重试。`);
-}
+// ========== 自然语音合成（浏览器内置，支持英音/美音） ==========
+let currentUtterance = null;
 
+function speakEnglishWord(word) {
+    if (!word) return;
+    // 取消任何正在播放的语音，避免重叠
+    if (currentUtterance) {
+        window.speechSynthesis.cancel();
+    }
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = currentAccent;  // 'en-GB' 或 'en-US'
+    utterance.rate = 0.9;            // 语速稍慢，清晰
+    utterance.pitch = 1.0;
+    utterance.volume = 1;
+    
+    // 尝试选择更自然的具体语音（可选，提高体验）
+    const setVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length === 0) {
+            // 语音列表未加载，稍后重试
+            window.speechSynthesis.onvoiceschanged = () => {
+                const newVoices = window.speechSynthesis.getVoices();
+                const selected = newVoices.find(v => v.lang === currentAccent && v.localService === true);
+                if (selected) utterance.voice = selected;
+                window.speechSynthesis.speak(utterance);
+            };
+            return;
+        }
+        const selected = voices.find(v => v.lang === currentAccent && v.localService === true);
+        if (selected) utterance.voice = selected;
+        window.speechSynthesis.speak(utterance);
+    };
+    setVoice();
+    currentUtterance = utterance;
+}
+// 切换语音按钮绑定
 function bindVoiceButtons() {
     const enUsBtn = document.getElementById('voiceEnUs');
     const enUkBtn = document.getElementById('voiceEnUk');
@@ -95,7 +97,6 @@ async function fetchTranslation(word) {
     } catch(e) {}
     return null;
 }
-
 function detectPos(word) {
     const patterns = {
         'tion$|sion$': 'n.', 'ing$': 'v.', 'ly$': 'adv.',
@@ -107,7 +108,6 @@ function detectPos(word) {
     }
     return '';
 }
-
 function isValidSentence(s) {
     if (!s || typeof s !== 'string') return false;
     s = s.trim();
@@ -120,7 +120,6 @@ function isValidSentence(s) {
     if (!/\s/.test(s)) return false;
     return true;
 }
-
 async function fetchOxfordExample(word) {
     try {
         const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
