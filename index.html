@@ -5,23 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Ariel's Words Helper ❄️</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='90' fill='%233b82f6'%3E❄️%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/css/style.css">
-    <!-- SheetJS 用于导入 Excel -->
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div id="app-container" class="app-container">
-        <!-- 顶部固定公告（永久显示） -->
         <div id="fixed-notice" style="background: linear-gradient(120deg, #fff0c0, #ffe0a3); color: #b75f00; padding: 12px 10px; text-align: center; font-size: 20px; font-weight: bold; border-bottom: 3px solid #ffb347; margin: 8px 15px; border-radius: 60px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             🍧 使用前请务必食用 🍧
         </div>
-
-        <!-- 动态公告栏（从 notice.json 读取） -->
         <div id="notice-bar" class="notice-bar hidden">
             <div class="notice-content" id="notice-content"></div>
             <button id="close-notice-btn" class="notice-close">✖</button>
         </div>
-
         <header>
             <h1 id="clickable-title">❄️ Ariel's Words Helper ❄️</h1>
             <div class="tab-bar">
@@ -32,36 +27,26 @@
                 <button class="tab-btn" data-tab="achievements">🏆 成就</button>
             </div>
         </header>
-
         <main id="main-view" class="content-container"></main>
     </div>
 
-    <!-- 管理员面板（连续点击标题5次打开） -->
     <div id="admin-panel" class="admin-panel" style="display:none;">
         <h4>🔧 数据管理</h4>
         <div id="admin-codes-list"></div>
-        <div style="margin-top:8px;">
-            <button id="reset-storage">重置所有数据</button>
-            <button id="close-admin">关闭</button>
-        </div>
+        <div><button id="reset-storage">重置所有数据</button> <button id="close-admin">关闭</button></div>
     </div>
 
-    <!-- 帮助图标（🍧） -->
-    <div id="info-icon" onclick="toggleHelp()" style="position: fixed; right: 20px; bottom: 20px; width: 55px; height: 55px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); cursor: pointer; z-index: 5000;">🍧</div>
-
-    <!-- 帮助模态框 -->
-    <div id="help-modal" class="full-overlay" style="display:none; z-index: 9000;">
-        <div class="auth-card" style="text-align: left;">
-            <h3 style="width: 100%; text-align: center;">📖 系统功能说明</h3>
-            <div class="help-content">
-                <p>• <b>单词库</b>：分为“了解词库”（只需认识）和“默写词库”（需听写）。支持手动添加或从 Excel 批量导入。</p>
-                <p>• <b>自动翻译</b>：添加单词时点击“🤖 自动翻译”，自动填充中文释义、词性（了解词库）及牛津词典例句。</p>
-                <p>• <b>语音朗读</b>：点击 🔊 按钮可听单词发音，支持英音/美音切换（听写页面）。</p>
-                <p>• <b>艾宾浩斯复习</b>：基于遗忘曲线规划复习，听写后自动更新下次复习时间。</p>
-                <p>• <b>成就系统</b>：完成特定目标（如添加单词、正确率达标）可获得成就并弹窗提示。</p>
-                <p style="color:#c7254e; background:#f9f2f4; padding:8px; border-radius:12px;">⚠️ 强烈建议：每次使用后点击“我的设置”中的“📤 导出 JSON 备份”，防止因浏览器缓存或误操作丢失数据！</p>
-            </div>
-            <button class="btn-primary" onclick="toggleHelp()">我知道了</button>
+    <div id="info-icon" onclick="toggleHelp()">🍧</div>
+    <div id="help-modal" class="full-overlay" style="display:none;">
+        <div class="auth-card">
+            <h3>📖 系统功能说明</h3>
+            <p>• 单词库：了解词库/默写词库，支持Excel导入。</p>
+            <p>• 自动翻译 + 牛津例句。</p>
+            <p>• 语音朗读（英音/美音切换）。</p>
+            <p>• 艾宾浩斯复习，听写记录正确率。</p>
+            <p>• 成就系统，导入导出备份。</p>
+            <p style="color:#c7254e;">⚠️ 建议每次使用后导出备份！</p>
+            <button class="btn-primary" onclick="toggleHelp()">关闭</button>
         </div>
     </div>
 
@@ -69,21 +54,15 @@
     <input type="file" id="import-file" style="display:none" accept=".json">
     <input type="file" id="import-excel" style="display:none" accept=".xlsx, .xls">
 
+    <script src="script.js"></script>
     <script>
-        // 简单帮助模态框切换函数（不依赖模块，确保可用）
         function toggleHelp() {
-            const modal = document.getElementById('help-modal');
-            if (modal) modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+            const m = document.getElementById('help-modal');
+            m.style.display = m.style.display === 'none' ? 'flex' : 'none';
         }
-        // 关闭点击模态框背景
-        document.addEventListener('click', function(e) {
-            const modal = document.getElementById('help-modal');
-            if (modal && modal.style.display === 'flex' && e.target === modal) {
-                modal.style.display = 'none';
-            }
+        document.getElementById('help-modal')?.addEventListener('click', e => {
+            if (e.target === document.getElementById('help-modal')) toggleHelp();
         });
     </script>
-
-    <script type="module" src="/js/main.js"></script>
 </body>
 </html>
