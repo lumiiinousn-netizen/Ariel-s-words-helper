@@ -27,16 +27,19 @@ function formatReviewDate(ts) {
     return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// ========== 语音朗读（使用原生 SpeechSynthesis，支持英音/美音） ==========
+// ========== 真人发音（有道词典接口，非 AI）==========
 function speakEnglishWord(word) {
     if (!word) return;
-    const utterance = new SpeechSynthesisUtterance(word);
-    utterance.lang = currentAccent;   // 'en-GB' 或 'en-US'
-    utterance.rate = 0.9;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    // 有道发音模板：type=1 英音，type=2 美音
+    const type = (currentAccent === 'en-GB') ? 1 : 2;
+    const url = `https://dict.youdao.com/dict/voice?audio=${encodeURIComponent(word)}&type=${type}`;
+    const audio = new Audio(url);
+    audio.play().catch(err => {
+        console.warn(`有道发音失败 (单词: ${word}):`, err);
+        // 不进行任何 AI 回退，保持纯真人发音请求
+    });
 }
-// 切换语音按钮绑定（在界面初始化时调用）
+// 切换语音按钮绑定
 function bindVoiceButtons() {
     const enUsBtn = document.getElementById('voiceEnUs');
     const enUkBtn = document.getElementById('voiceEnUk');
@@ -61,7 +64,6 @@ async function fetchTranslation(word) {
         const d = await r.json();
         if (d?.responseData?.translatedText && d.responseData.translatedText !== word) {
             let trans = d.responseData.translatedText.replace(/&#39;/g,"'").replace(/&quot;/g,'"');
-            // 去除常见词性前缀 (n., v., adj. 等)
             trans = trans.replace(/^(n\.|adj\.|v\.|adv\.|prep\.|conj\.|pron\.)\s+/i, '');
             if (trans && trans.length < 50) return trans;
         }
@@ -72,9 +74,8 @@ async function fetchTranslation(word) {
         const d = await r.json();
         if (d?.[0]?.[0]?.[0]) return d[0][0][0];
     } catch(e) {}
-    return null; // 完全失败
+    return null;
 }
-// 自动检测词性（基于常见后缀）
 function detectPos(word) {
     const patterns = {
         'tion$|sion$': 'n.', 'ing$': 'v.', 'ly$': 'adv.',
@@ -86,13 +87,11 @@ function detectPos(word) {
     }
     return '';
 }
-// 获取合格例句（牛津风格）
 function isValidSentence(s) {
     if (!s || typeof s !== 'string') return false;
     s = s.trim();
     if (s.length < 12) return false;
     const l = s.toLowerCase();
-    // 排除过于简单或食物类低质例句
     const blacklist = ['pizza','burger','sandwich','spaghetti','curry','sushi','taco','burrito','noodle','rice','chicken','beef','pork','cake','cookie','ice cream','chocolate','apple pie','steak'];
     if (blacklist.some(f => l.includes(f))) return false;
     const verbIndicators = /\b(is|am|are|was|were|be|been|being|have|has|had|having|do|does|did|doing|go|goes|went|gone|make|makes|made|take|takes|took|taken|see|sees|saw|seen|say|says|said|get|gets|got|gotten|find|finds|found|give|gives|gave|given|think|thinks|thought|know|knows|knew|known)\b/i;
@@ -120,7 +119,6 @@ function loadData() {
     const saved = localStorage.getItem('ariel_words_data');
     if (saved) {
         wordBank = JSON.parse(saved);
-        // 为旧数据补齐缺失字段
         wordBank = wordBank.map(w => ({
             ...w,
             reviewCount: w.reviewCount || 0,
@@ -138,7 +136,6 @@ function loadData() {
 function saveData() {
     localStorage.setItem('ariel_words_data', JSON.stringify(wordBank));
     notifyState();
-    // 刷新当前视图
     if (currentTab === 'understanding') renderUnderstanding();
     else if (currentTab === 'spelling') renderSpelling();
     else if (currentTab === 'quiz') updateSpellList();
@@ -158,7 +155,7 @@ function updateReview(word, isCorrect) {
         if (word.reviewStage < EBB.length) {
             word.nextTime = Date.now() + EBB[word.reviewStage] * 24*60*60*1000;
         } else {
-            word.nextTime = null; // 已完成所有周期
+            word.nextTime = null;
         }
     }
     saveData();
@@ -191,7 +188,6 @@ function updateSpellList() {
 }
 
 // ========== 词库渲染 ==========
-// 理解词库（增加 review 按钮）
 function renderUnderstanding() {
     const container = document.getElementById('understanding-words-container');
     if (!container) return;
@@ -237,7 +233,6 @@ function renderUnderstanding() {
         };
     });
 }
-// 默写词库（显示复习时间 + 正确率）
 function renderSpelling() {
     const container = document.getElementById('spelling-words-container');
     if (!container) return;
@@ -308,9 +303,8 @@ function renderSpelling() {
     });
 }
 
-// ========== 添加单词（理解词库 + 默写词库）修复版 ==========
-// ---- 理解词库添加面板 ----
-let tempExample = '';  // 暂存例句
+// ========== 添加单词（理解词库 + 默写词库） ==========
+let tempExample = '';
 async function autoFillUnderstanding() {
     const engInput = document.getElementById('new-ueng');
     const word = engInput.value.trim();
@@ -323,7 +317,6 @@ async function autoFillUnderstanding() {
     if (translation) {
         let pos = detectPos(word);
         let finalChinese = translation;
-        // 自动分离词性
         const posRegex = /^(n\.|adj\.|v\.|adv\.|prep\.|conj\.|pron\.)\s+/i;
         if (posRegex.test(finalChinese)) {
             const match = finalChinese.match(posRegex);
@@ -351,7 +344,6 @@ function addUnderstandingWord() {
     const ex = document.getElementById('temp-ex').value.trim() || tempExample;
     if (!en || !ch) { alert("请完整填写英文和中文释义"); return; }
     if (wordBank.some(w => w.english.toLowerCase() === en.toLowerCase())) { alert("单词已存在！"); return; }
-    // 组合最终中文
     const finalChinese = pos ? `${pos} ${ch}` : ch;
     const newWord = {
         id: Date.now(),
@@ -367,7 +359,6 @@ function addUnderstandingWord() {
     };
     wordBank.push(newWord);
     saveData();
-    // 清空表单并隐藏
     document.getElementById('new-ueng').value = '';
     document.getElementById('new-uci').value = '';
     document.getElementById('new-u-pos').value = '';
@@ -376,7 +367,6 @@ function addUnderstandingWord() {
     renderUnderstanding();
     alert(`✅ 单词“${en}”已加入理解词库`);
 }
-// ---- 默写词库添加 ----
 async function autoFillSpelling() {
     const engInput = document.getElementById('new-seng');
     const word = engInput.value.trim();
@@ -410,7 +400,7 @@ function addSpellingWord() {
         mnemonic: '',
         reviewStage: 0,
         lastReviewDate: null,
-        nextTime: Date.now(),  // 立即待复习
+        nextTime: Date.now(),
         attempts: 0,
         wrongCount: 0,
         createdDate: getTodayStr()
@@ -426,7 +416,7 @@ function addSpellingWord() {
     alert(`✅ 单词“${en}”已加入默写词库`);
 }
 
-// ========== Excel 导入（理解/默写通用） ==========
+// ========== Excel 导入 ==========
 async function importExcelTo(target) {
     const input = document.getElementById('import-excel');
     input.onchange = async (e) => {
@@ -469,7 +459,7 @@ async function importExcelTo(target) {
     input.click();
 }
 
-// ========== 听写练习（完整左右箭头、正确率筛选、艾宾浩斯） ==========
+// ========== 听写练习 ==========
 let quizStartTime = 0;
 function startNewQuiz() {
     const container = document.getElementById('quiz-card');
@@ -530,7 +520,7 @@ async function submitAnswer(word) {
         word.mnemonic = document.getElementById('word-mnemonic').value.trim();
         saveData();
         alert('记忆口诀已保存');
-        renderSpelling();  // 刷新列表显示口诀
+        renderSpelling();
     };
     setTimeout(() => {
         if (currentQuizIndex + 1 < spellWordList.length) {
@@ -636,7 +626,6 @@ async function loadNotice() {
         if (noticeBar && content) noticeBar.classList.remove('hidden');
     } catch(e) { console.warn('公告加载失败'); }
 }
-// 固定公告 + 欢迎公告 已在 HTML 中硬编码，无需额外处理
 
 // ========== 个人信息 + 导入导出 ==========
 function renderProfile() {
@@ -813,7 +802,6 @@ async function init() {
     loadUnlocked();
     await loadNotice();
     document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
-    // 管理员控制台（隐藏功能）
     let clickCount = 0, timer = null;
     document.getElementById('clickable-title').addEventListener('click', () => {
         clickCount++;
