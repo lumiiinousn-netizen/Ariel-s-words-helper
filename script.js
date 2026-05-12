@@ -11,6 +11,10 @@ let listeners = [];
 let speechAuthorized = false;
 let activeUtterance = null;
 
+// 搜索关键词
+let understandingSearchTerm = '';
+let spellingSearchTerm = '';
+
 function notifyState() { listeners.forEach(fn => fn()); }
 function subscribe(fn) { listeners.push(fn); return () => listeners = listeners.filter(f => f !== fn); }
 
@@ -29,7 +33,7 @@ function formatReviewDate(ts) {
     return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// ========== 语音授权与发音 ==========
+// ========== 语音授权与发音（优化稳定性）==========
 function showSpeechPermissionDialog() {
     if (speechAuthorized) return;
     const overlay = document.createElement('div');
@@ -47,6 +51,7 @@ function showSpeechPermissionDialog() {
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     document.getElementById('allow-speech-btn').onclick = () => {
+        // 播放一个极短的测试音以获取权限
         const testMsg = new SpeechSynthesisUtterance(' ');
         testMsg.lang = 'en-US';
         testMsg.onend = () => {
@@ -170,14 +175,12 @@ function loadData() {
         wordBank = wordBank.map(w => ({
             ...w,
             reviewCount: w.reviewCount || 0,
-            mnemonic: w.mnemonic || '',
             reviewStage: w.reviewStage ?? 0,
             lastReviewDate: w.lastReviewDate || null,
             nextTime: w.nextTime || null,
             attempts: w.attempts || 0,
             wrongCount: w.wrongCount || 0,
-            // === 新增错词记录 ===
-            wrongAttempts: w.wrongAttempts || []   // 存储每次拼错时的错误输入字符串
+            wrongAttempts: w.wrongAttempts || []
         }));
     } else {
         wordBank = [];
@@ -237,13 +240,12 @@ function updateSpellList() {
     notifyState();
 }
 
-// ========== 单词卡弹窗（显示错词记录）==========
+// ========== 单词卡弹窗（不含口诀）==========
 function showWordCard(word) {
     const acc = getAccuracy(word);
     const percent = word.attempts ? Math.round(acc * 100) : 100;
     const nextReview = word.nextTime ? formatReviewDate(word.nextTime) : '已完成所有周期';
     
-    // 统计错误拼写及其出现次数
     const errorCounts = {};
     if (word.wrongAttempts && word.wrongAttempts.length) {
         word.wrongAttempts.forEach(err => {
@@ -268,7 +270,6 @@ function showWordCard(word) {
         <div style="margin-bottom:1rem;">
             <p><strong>释义：</strong> ${escapeHtml(word.chinese)}</p>
             ${word.example ? `<p><strong>例句：</strong> ${escapeHtml(word.example)}</p>` : ''}
-            ${word.mnemonic ? `<p><strong>口诀：</strong> ${escapeHtml(word.mnemonic)}</p>` : ''}
         </div>
         <hr>
         <h3>📊 掌握情况</h3>
@@ -292,20 +293,27 @@ function showWordCard(word) {
             word.wrongCount = 0;
             saveData();
             modal.remove();
-            renderSpelling();  // 刷新列表
+            renderSpelling();
         }
     };
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 }
 
-// ========== 词库渲染 ==========
+// ========== 词库渲染（带搜索，无口诀）==========
 function renderUnderstanding() {
     const container = document.getElementById('understanding-words-container');
     if (!container) return;
-    const words = wordBank.filter(w => w.mode === 'meaning');
+    let words = wordBank.filter(w => w.mode === 'meaning');
+    if (understandingSearchTerm.trim() !== '') {
+        const term = understandingSearchTerm.trim().toLowerCase();
+        words = words.filter(w => 
+            w.english.toLowerCase().includes(term) || 
+            w.chinese.toLowerCase().includes(term)
+        );
+    }
     container.innerHTML = '';
     if (!words.length) {
-        container.innerHTML = '<div class="empty-state">✨ 暂无了解词库单词，点击右上角添加</div>';
+        container.innerHTML = '<div class="empty-state">✨ 没有找到相关单词，试试其他关键词</div>';
         return;
     }
     words.forEach(w => {
@@ -344,13 +352,21 @@ function renderUnderstanding() {
         };
     });
 }
+
 function renderSpelling() {
     const container = document.getElementById('spelling-words-container');
     if (!container) return;
-    const words = wordBank.filter(w => w.mode === 'spell');
+    let words = wordBank.filter(w => w.mode === 'spell');
+    if (spellingSearchTerm.trim() !== '') {
+        const term = spellingSearchTerm.trim().toLowerCase();
+        words = words.filter(w => 
+            w.english.toLowerCase().includes(term) || 
+            w.chinese.toLowerCase().includes(term)
+        );
+    }
     container.innerHTML = '';
     if (!words.length) {
-        container.innerHTML = '<div class="empty-state">✨ 暂无默写单词，点击右上角添加</div>';
+        container.innerHTML = '<div class="empty-state">✨ 没有找到相关单词，试试其他关键词</div>';
         return;
     }
     words.forEach(w => {
@@ -362,8 +378,6 @@ function renderSpelling() {
         else { gClass='low'; gIcon='💪🏻'; }
         const due = isDue(w);
         const nextReview = w.nextTime ? formatReviewDate(w.nextTime) : '已完成';
-        const mnemonicHtml = w.mnemonic ? `<div class="example-box">🧠 口诀: ${escapeHtml(w.mnemonic)}</div>` : '';
-        // 增加点击卡片主体查看详情
         const card = document.createElement('div');
         card.className = 'word-card';
         card.style.cursor = 'pointer';
@@ -372,7 +386,6 @@ function renderSpelling() {
                 <div class="word-english">${escapeHtml(w.english)}<button class="icon-small play-word-btn" style="cursor:pointer;">🔊</button></div>
                 <div class="word-chinese">${escapeHtml(w.chinese)}</div>
                 ${w.example ? `<div class="example-box">📖 ${escapeHtml(w.example)}</div>` : ''}
-                ${mnemonicHtml}
                 <div class="word-meta">
                     <span class="badge">✍️ 默写</span>
                     <span class="badge ${gClass}">${gIcon} ${percent}%</span>
@@ -381,33 +394,21 @@ function renderSpelling() {
                 </div>
             </div>
             <div class="word-actions">
-                <button class="icon-small edit-mnemonic-btn" title="编辑记忆口诀">✏️ 口诀</button>
                 <button class="icon-small wrong-inc-btn">❌ +1错</button>
                 <button class="icon-small delete-btn">🗑️</button>
             </div>
         `;
         container.appendChild(card);
-        // 点击整个卡片（除了按钮区域）显示详情卡片
         card.querySelector('.word-info').onclick = (e) => {
             if (e.target.tagName !== 'BUTTON') {
                 showWordCard(w);
             }
         };
         card.querySelector('.play-word-btn').onclick = (e) => { e.stopPropagation(); speakEnglishWord(w.english); };
-        card.querySelector('.edit-mnemonic-btn').onclick = (e) => {
-            e.stopPropagation();
-            const newMnemonic = prompt('编辑记忆口诀（帮助拼写联想）:', w.mnemonic || '');
-            if (newMnemonic !== null) {
-                w.mnemonic = newMnemonic.trim();
-                saveData();
-                renderSpelling();
-            }
-        };
         card.querySelector('.wrong-inc-btn').onclick = (e) => {
             e.stopPropagation();
             w.wrongCount = (w.wrongCount || 0) + 1;
             w.attempts = (w.attempts || 0) + 1;
-            // 手动记录一次错误拼写（模拟输入）
             const fakeWrong = prompt('记录错误拼写（例如拼错的单词）:', w.english + '?');
             if (fakeWrong && fakeWrong.trim()) {
                 w.wrongAttempts = w.wrongAttempts || [];
@@ -431,7 +432,7 @@ function renderSpelling() {
     });
 }
 
-// ========== 添加单词（理解词库 + 默写词库）==========
+// ========== 添加单词 ==========
 let tempExample = '';
 async function autoFillUnderstanding() {
     const engInput = document.getElementById('new-ueng');
@@ -484,7 +485,7 @@ function addUnderstandingWord() {
         createdDate: getTodayStr(),
         attempts: 0,
         wrongCount: 0,
-        wrongAttempts: []      // 新增
+        wrongAttempts: []
     };
     wordBank.push(newWord);
     saveData();
@@ -526,13 +527,12 @@ function addSpellingWord() {
         chinese: ch,
         mode: 'spell',
         example: ex || '',
-        mnemonic: '',
         reviewStage: 0,
         lastReviewDate: null,
         nextTime: Date.now(),
         attempts: 0,
         wrongCount: 0,
-        wrongAttempts: [],     // 新增
+        wrongAttempts: [],
         createdDate: getTodayStr()
     };
     wordBank.push(newWord);
@@ -569,7 +569,6 @@ async function importExcelTo(target) {
                 mode: target === 'understanding' ? 'meaning' : 'spell',
                 example: '',
                 pos: '',
-                mnemonic: '',
                 reviewCount: 0,
                 reviewStage: 0,
                 attempts: 0,
@@ -590,7 +589,7 @@ async function importExcelTo(target) {
     input.click();
 }
 
-// ========== 听写练习（纯手动切换，并记录错误拼写）==========
+// ========== 听写练习（无口诀）==========
 let quizStartTime = 0;
 function startNewQuiz() {
     const container = document.getElementById('quiz-card');
@@ -627,7 +626,6 @@ async function submitAnswer(word) {
     word.attempts = (word.attempts || 0) + 1;
     if (!isCorrect) {
         word.wrongCount = (word.wrongCount || 0) + 1;
-        // === 记录错误拼写（保留原始输入）===
         if (!word.wrongAttempts) word.wrongAttempts = [];
         word.wrongAttempts.push(userAnswer);
     }
@@ -647,19 +645,8 @@ async function submitAnswer(word) {
         <div class="stat-row"><span>📅 下次复习</span><span>${nextReview}</span></div>
         <div class="stat-row"><span>📊 单词正确率</span><span>${accuracyPercent}% (${word.attempts}次练习)</span></div>
         ${exampleHtml}
-        <div class="mnemonic-area">
-            <label>🧠 记忆口诀/联想：</label>
-            <textarea id="word-mnemonic" placeholder="例如：他日他哥 → heritage 遗产..." rows="2">${word.mnemonic || ''}</textarea>
-            <button id="save-mnemonic-btn" class="icon-small" style="margin-top:8px;">💾 保存</button>
-        </div>
     `;
-    document.getElementById('save-mnemonic-btn').onclick = () => {
-        word.mnemonic = document.getElementById('word-mnemonic').value.trim();
-        saveData();
-        alert('记忆口诀已保存');
-        renderSpelling();
-    };
-    // 不自动跳转，用户需手动点击下一个单词
+    // 无口诀保存按钮
 }
 
 function updateQuizNav() {
@@ -856,14 +843,20 @@ function renderProfile() {
     };
 }
 
-// ========== 标签页切换 ==========
+// ========== 标签页切换（含搜索框）==========
 function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
     const main = document.getElementById('main-view');
     if (tab === 'understanding') {
         main.innerHTML = `
-            <div class="section-header"><h2>📘 理解词库</h2><button id="add-understanding-btn" class="icon-btn">➕ 新单词</button></div>
+            <div class="section-header">
+                <h2>📘 理解词库</h2>
+                <button id="add-understanding-btn" class="icon-btn">➕ 新单词</button>
+            </div>
+            <div class="search-bar" style="margin-bottom: 1rem;">
+                <input type="text" id="understanding-search" placeholder="🔍 搜索英文或中文..." style="width:100%; padding:0.6rem; border-radius:2rem; border:1px solid #cbd5e1; font-size:0.9rem;">
+            </div>
             <div id="add-understanding-form" class="add-word-panel hidden">
                 <h3>添加新单词（理解即可）</h3>
                 <div class="form-row">
@@ -884,10 +877,22 @@ function switchTab(tab) {
         document.getElementById('cancel-u-add').onclick = () => document.getElementById('add-understanding-form').classList.add('hidden');
         document.getElementById('auto-fetch-u').onclick = autoFillUnderstanding;
         document.getElementById('import-excel-understanding').onclick = () => importExcelTo('understanding');
+        const searchInput = document.getElementById('understanding-search');
+        searchInput.value = understandingSearchTerm;
+        searchInput.oninput = (e) => {
+            understandingSearchTerm = e.target.value;
+            renderUnderstanding();
+        };
         renderUnderstanding();
     } else if (tab === 'spelling') {
         main.innerHTML = `
-            <div class="section-header"><h2>✍️ 默写词库</h2><button id="add-spelling-btn" class="icon-btn">➕ 新单词</button></div>
+            <div class="section-header">
+                <h2>✍️ 默写词库</h2>
+                <button id="add-spelling-btn" class="icon-btn">➕ 新单词</button>
+            </div>
+            <div class="search-bar" style="margin-bottom: 1rem;">
+                <input type="text" id="spelling-search" placeholder="🔍 搜索英文或中文..." style="width:100%; padding:0.6rem; border-radius:2rem; border:1px solid #cbd5e1; font-size:0.9rem;">
+            </div>
             <div id="add-spelling-form" class="add-word-panel hidden">
                 <h3>添加新单词（需要默写）</h3>
                 <div class="form-row">
@@ -907,6 +912,12 @@ function switchTab(tab) {
         document.getElementById('cancel-s-add').onclick = () => document.getElementById('add-spelling-form').classList.add('hidden');
         document.getElementById('auto-fetch-s').onclick = autoFillSpelling;
         document.getElementById('import-excel-spelling').onclick = () => importExcelTo('spelling');
+        const searchInput = document.getElementById('spelling-search');
+        searchInput.value = spellingSearchTerm;
+        searchInput.oninput = (e) => {
+            spellingSearchTerm = e.target.value;
+            renderSpelling();
+        };
         renderSpelling();
     } else if (tab === 'quiz') {
         main.innerHTML = `
